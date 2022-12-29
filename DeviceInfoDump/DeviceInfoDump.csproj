@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net40;net45;netcoreapp3.1</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Configurations>Debug;Release</Configurations>
+    <NeutralLanguage>en-US</NeutralLanguage>
+
+    <AssemblyName>DeviceInfoDump</AssemblyName>
+    <AssemblyTitle>DeviceInfoDump</AssemblyTitle>
+    <Product>RJCP.IO.DeviceInfo</Product>
+    <RootNamespace>RJCP.DeviceInfoDump</RootNamespace>
+
+    <Authors>Jason Curl</Authors>
+    <Copyright>(C) 202, Jason Curl</Copyright>
+    <Company></Company>
+
+    <Description>Dump Device Information to the console.</Description>
+    <Version>1.0.0</Version>
+
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Default</AnalysisMode>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <RevisionControl>git</RevisionControl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug'">
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.22" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.22" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.22" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.22" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.22" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RJCP.MSBuildTasks" Version="0.2.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeviceMgr\RJCP.IO.DeviceMgr.csproj" />
+    <ProjectReference Include="..\..\trace\Trace\RJCP.Diagnostics.Trace.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Log.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+
+  <Target Name="CopyAppConfig" AfterTargets="AfterBuild" Condition="Exists('appsettings.json') and '$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
+    <Delete Files="$(OutDir)$(TargetFileName).json" />
+    <Copy SourceFiles="$(ProjectDir)appsettings.json" DestinationFiles="$(OutDir)$(TargetFileName).json" />
+  </Target>
+</Project>
