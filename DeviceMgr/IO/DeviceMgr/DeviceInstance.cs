@@ -35,9 +35,7 @@
 
             Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device tree");
 
-            SafeDevInst devInst;
-            CfgMgr32.CONFIGRET ret;
-            ret = CfgMgr32.CM_Locate_DevNode(out devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get root node, return {ret}");
                 return null;
@@ -107,8 +105,7 @@
             List<DeviceInstance> devices = new List<DeviceInstance>();
             lock (s_CachedLock) {
                 foreach (string instance in instances) {
-                    SafeDevInst devInst;
-                    ret = CfgMgr32.CM_Locate_DevNode(out devInst, instance, CfgMgr32.CM_LOCATE_DEVINST.PHANTOM);
+                    ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, CfgMgr32.CM_LOCATE_DEVINST.PHANTOM);
                     if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                         Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
                     } else {
@@ -171,7 +168,7 @@
 
         #region Cached Device Instances
         private static readonly object s_CachedLock = new object();
-        private static Dictionary<string, DeviceInstance> s_CachedInstances = new Dictionary<string, DeviceInstance>();
+        private static readonly Dictionary<string, DeviceInstance> s_CachedInstances = new Dictionary<string, DeviceInstance>();
 
         private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent)
         {
