@@ -20,7 +20,7 @@
             CheckDevicesPresent(devices);
         }
 
-        private void CheckDeviceTree(DeviceInstance devices)
+        private static void CheckDeviceTree(DeviceInstance devices)
         {
             // Check the parent / child relationship
             Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
@@ -34,14 +34,15 @@
             }
         }
 
-        private void CheckDevicesPresent(DeviceInstance devices)
+        private static void CheckDevicesPresent(DeviceInstance devices)
         {
             // Check the parent / child relationship
             Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance node = queue.Dequeue();
-                Assert.That(node.ProblemCode != DeviceProblem.DeviceNotThere, $"{node} in list - {node.ProblemCode}");
+                Assert.That(node.ProblemCode, Is.Not.EqualTo(DeviceProblem.DeviceNotThere),
+                    $"{node} in list - {node.ProblemCode}");
                 foreach (DeviceInstance child in node.Children) {
                     queue.Enqueue(child);
                 }
