@@ -9,7 +9,10 @@
     /// </summary>
     public class SafeDevInst : SafeHandleZeroOrMinusOneIsInvalid
     {
-        private SafeDevInst() : base(true) { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SafeDevInst"/> class.
+        /// </summary>
+        public SafeDevInst() : base(true) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SafeDevInst"/> class.
