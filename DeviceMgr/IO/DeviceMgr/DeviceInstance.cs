@@ -40,18 +40,21 @@
                 return null;
             }
 
-            DeviceInstance root = new DeviceInstance(devInst);
-            root.PopulateChildren();
-            return root;
+            lock (s_CachedLock) {
+                DeviceInstance root = GetDeviceInstance(devInst, null);
+                root.PopulateChildren(false);
+                return root;
+            }
         }
 
-        private void PopulateChildren()
+        private void PopulateChildren(bool overwrite)
         {
+            if (!overwrite && (m_IsPopulated || m_Children.Count > 0)) return;
+
             if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
                 throw new ObjectDisposedException(nameof(DeviceInstance));
-            if (m_IsPopulated || m_Children.Count > 0)
-                throw new InvalidOperationException("Device Instance already populated with children");
-            m_IsPopulated = true;
+
+            List<DeviceInstance> children = new List<DeviceInstance>();
 
             CfgMgr32.CONFIGRET ret;
 
@@ -61,20 +64,16 @@
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
                 return;
             }
-            DeviceInstance node = new DeviceInstance(child) {
-                Parent = this
-            };
-            m_Children.Add(node);
+            DeviceInstance node = GetDeviceInstance(child, this);
+            children.Add(node);
 
             bool finished = false;
             while (!finished) {
                 ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
                 switch (ret) {
                 case CfgMgr32.CONFIGRET.CR_SUCCESS:
-                    node = new DeviceInstance(sibling) {
-                        Parent = this
-                    };
-                    m_Children.Add(node);
+                    node = GetDeviceInstance(sibling, this);
+                    children.Add(node);
                     break;
                 default:
                     if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
@@ -85,9 +84,37 @@
             }
 
             // Now recurse into the new nodes and populate them also.
-            foreach (DeviceInstance dev in m_Children) {
-                dev.PopulateChildren();
+            foreach (DeviceInstance dev in children) {
+                dev.PopulateChildren(false);
             }
+
+            // Only make the tree visible once it is complete. This makes assignment atomic at the end (assignment of
+            // reference types is atomic).
+            m_Children = children;
+            m_IsPopulated = true;
+        }
+        #endregion
+
+        #region Cached Device Instances
+        private static readonly object s_CachedLock = new object();
+        private static Dictionary<string, DeviceInstance> s_CachedInstances = new Dictionary<string, DeviceInstance>();
+
+        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent)
+        {
+            // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
+            // overhead of locking for the usual case of iterating only once.
+
+            string name = GetDeviceId(devInst);
+            if (s_CachedInstances.TryGetValue(name, out DeviceInstance value)) {
+                if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
+                    return value;
+            }
+
+            value = new DeviceInstance(devInst) {
+                Parent = parent
+            };
+            s_CachedInstances[name] = value;
+            return value;
         }
         #endregion
 
@@ -99,7 +126,11 @@
             m_DevInst = handle;
             m_Name = GetDeviceId(handle);
             GetStatus();
+            SetProperties();
+        }
 
+        private void SetProperties()
+        {
             m_DevDesc = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.DEVICEDESC);
             m_Service = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.SERVICE);
             m_Class = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.CLASS);
@@ -142,6 +173,8 @@
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Status(out CfgMgr32.DN_STATUS status, out int problem, m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get status, return {ret}");
+                HasProblem = true;
+                ProblemCode = DeviceProblem.DeviceNotThere;
                 return;
             }
 
@@ -179,7 +212,7 @@
         public DeviceInstance Parent { get; private set; }
 
         private bool m_IsPopulated;
-        private readonly List<DeviceInstance> m_Children = new List<DeviceInstance>();
+        private List<DeviceInstance> m_Children = new List<DeviceInstance>();
 
         /// <summary>
         /// Get the children device instances from this node.
@@ -216,7 +249,7 @@
         /// <value>The problem code for this driver.</value>
         public DeviceProblem ProblemCode { get; private set; }
 
-        private readonly DeviceProperty<string> m_DevDesc;
+        private DeviceProperty<string> m_DevDesc;
 
         /// <summary>
         /// Gets the device description.
@@ -224,7 +257,7 @@
         /// <value>The device description.</value>
         public string DeviceDescription { get { return m_DevDesc.Value; } }
 
-        private readonly DeviceProperty<string> m_Service;
+        private DeviceProperty<string> m_Service;
 
         /// <summary>
         /// Gets the name of the service.
@@ -232,7 +265,7 @@
         /// <value>The name of the service.</value>
         public string Service { get { return m_Service.Value; } }
 
-        private readonly DeviceProperty<string> m_Class;
+        private DeviceProperty<string> m_Class;
 
         /// <summary>
         /// Gets the class name of the device.
@@ -240,7 +273,7 @@
         /// <value>The class name of the device.</value>
         public string Class { get { return m_Class.Value; } }
 
-        private readonly DeviceProperty<string> m_ClassGuid;
+        private DeviceProperty<string> m_ClassGuid;
 
         /// <summary>
         /// Gets the class unique identifier of the device.
@@ -248,7 +281,7 @@
         /// <value>The class unique identifier of the device.</value>
         public string ClassGuid { get { return m_ClassGuid.Value; } }
 
-        private readonly DeviceProperty<string> m_Driver;
+        private DeviceProperty<string> m_Driver;
 
         /// <summary>
         /// Gets the driver.
@@ -256,7 +289,7 @@
         /// <value>The driver.</value>
         public string Driver { get { return m_Driver.Value; } }
 
-        private readonly DeviceProperty<string> m_Manufacturer;
+        private DeviceProperty<string> m_Manufacturer;
 
         /// <summary>
         /// Gets the manufacturer of the device or driver.
@@ -264,7 +297,7 @@
         /// <value>The manufacturer of the device or driver.</value>
         public string Manufacturer { get { return m_Manufacturer.Value; } }
 
-        private readonly DeviceProperty<string> m_FriendlyName;
+        private DeviceProperty<string> m_FriendlyName;
 
         /// <summary>
         /// Gets the friendly name of the device.
@@ -272,7 +305,7 @@
         /// <value>The friendly name of the device.</value>
         public string FriendlyName { get { return m_FriendlyName.Value; } }
 
-        private readonly DeviceProperty<string> m_Location;
+        private DeviceProperty<string> m_Location;
 
         /// <summary>
         /// Gets the location of the device.
@@ -280,7 +313,7 @@
         /// <value>The location of the device.</value>
         public string Location { get { return m_Location.Value; } }
 
-        private readonly DeviceProperty<string> m_PhysicalDevice;
+        private DeviceProperty<string> m_PhysicalDevice;
 
         /// <summary>
         /// Gets the physical device name.
@@ -288,7 +321,7 @@
         /// <value>The physical device name.</value>
         public string PhysicalDevice { get { return m_PhysicalDevice.Value; } }
 
-        private readonly DeviceProperty<int> m_ConfigFlags;
+        private DeviceProperty<int> m_ConfigFlags;
 
         /// <summary>
         /// Gets the configuration flags for the device.
@@ -296,7 +329,7 @@
         /// <value>The configuration flags for the device.</value>
         public int ConfigFlags { get { return m_ConfigFlags.Value; } }
 
-        private readonly DeviceProperty<int> m_Capabilities;
+        private DeviceProperty<int> m_Capabilities;
 
         /// <summary>
         /// Gets the capability flags of the device.
@@ -304,7 +337,7 @@
         /// <value>The capabilities of the device.</value>
         public DeviceCapabilities Capabilities { get { return (DeviceCapabilities)m_Capabilities.Value; } }
 
-        private readonly DeviceProperty<string[]> m_HardwareIds;
+        private DeviceProperty<string[]> m_HardwareIds;
 
         /// <summary>
         /// Gets the hardware ids.
@@ -316,7 +349,7 @@
         public IList<string> HardwareIds { get { return m_HardwareIds.Value; } }
 #endif
 
-        private readonly DeviceProperty<string[]> m_CompatibleIds;
+        private DeviceProperty<string[]> m_CompatibleIds;
 
         /// <summary>
         /// Gets the compatible ids.
@@ -328,7 +361,7 @@
         public IList<string> CompatibleIds { get { return m_CompatibleIds.Value; } }
 #endif
 
-        private readonly DeviceProperty<string[]> m_UpperFilters;
+        private DeviceProperty<string[]> m_UpperFilters;
 
         /// <summary>
         /// Gets the compatible ids.
@@ -340,7 +373,7 @@
         public IList<string> UpperFilters { get { return m_UpperFilters.Value; } }
 #endif
 
-        private readonly DeviceProperty<string[]> m_LowerFilters;
+        private DeviceProperty<string[]> m_LowerFilters;
 
         /// <summary>
         /// Gets the compatible ids.
@@ -352,7 +385,7 @@
         public IList<string> LowerFilters { get { return m_LowerFilters.Value; } }
 #endif
 
-        private readonly DeviceProperty<string[]> m_LocationPaths;
+        private DeviceProperty<string[]> m_LocationPaths;
 
         /// <summary>
         /// Gets the compatible ids (Windows 2003 and later).
@@ -364,7 +397,7 @@
         public IList<string> LocationPaths { get { return m_LocationPaths.Value; } }
 #endif
 
-        private readonly DeviceProperty<string> m_BaseContainerId;
+        private DeviceProperty<string> m_BaseContainerId;
 
         /// <summary>
         /// Gets the base container identifier (Windows 7).
@@ -466,6 +499,49 @@
             return RegistryKey.FromHandle(key);
         }
 
+        /// <summary>
+        /// Refreshes this instance.
+        /// </summary>
+        /// <remarks>
+        /// This method should be used if it is believed that this node, and the children might have changed.
+        /// </remarks>
+        public void Refresh()
+        {
+            lock (s_CachedLock) {
+                // First we iterate through all the children and reset the properties. Then we'll reenumerate and
+                // replace the children with a Depth First Search, touching all the leaves first. So then if someone is
+                // enumerating the items, the list won't change, because we'll provide new instances of the children
+                // lists.
+                //
+                // This also works with caching, as PopulateChildren looks into the global cache, it returns an existing
+                // entry and just uses that. Its children were updated in a previous call due to the DepthFirstSearch
+                // algorithm of updating the leaves first.
+                DepthFirstSearch(this, (devInst) => {
+                    // This might fail, when a device is removed. It can be ignored.
+                    devInst.GetStatus();
+
+                    // If the user is already querying the properties, it will still work, because they'll use the old
+                    // object before reassignment.
+                    devInst.SetProperties();
+
+                    // Populating the children from the bottom up refreshes only the children node at a time, because
+                    // their children have already been populated. The variable to overwrite is only for the current
+                    // node, which is fine, as we're doing a DFS search operating at the leaf nodes first.
+                    //
+                    // If the node was added since the current three, then this will enumerate also the children.
+                    devInst.PopulateChildren(true);
+                });
+            }
+        }
+
+        private static void DepthFirstSearch(DeviceInstance devInst, Action<DeviceInstance> action)
+        {
+            foreach (DeviceInstance child in devInst.Children) {
+                DepthFirstSearch(child, action);
+            }
+            action(devInst);
+        }
+
         private readonly string m_Name;
 
         /// <summary>
@@ -500,14 +576,15 @@
         /// </param>
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing) {
-                m_DevInst.Close();
+            // There are no objects to dispose (at this time). The SafeDevInst object can be disposed of, but it doesn't
+            // do anything anyway. We'll just let the finalizer deal with it.
 
-                // Iterate through the tree and dispose them too.
-                foreach (DeviceInstance devInst in m_Children) {
-                    devInst.Dispose();
-                }
-            }
+            // Secondly, disposing cached elements is dangerous. We'd need to remove it from the cache. But there might
+            // be multiple instances of the same object somewhere else, and when Code Block X disposes of the object,
+            // unexpected Code Block Y sees the object as disposed. That would be bad design.
+
+            // As such, and documented in SafeDevInst, it's just a convenient wrapper, and the Windows API doesn't offer
+            // a way to close these objects since Windows 2000 (till Windows 11), so it won't in the future either.
         }
     }
 }

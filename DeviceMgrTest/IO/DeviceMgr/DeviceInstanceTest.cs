@@ -43,6 +43,60 @@
         }
 
         [Test]
+        public void GetDeviceTreeRefresh()
+        {
+            HashSet<string> foundBefore = new HashSet<string>();
+            HashSet<string> foundAfter = new HashSet<string>();
+
+            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
+                Assert.That(devices, Is.Not.Null);
+                Assert.That(devices.Children.Count, Is.GreaterThan(0));
+
+                Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+                queue.Enqueue(devices);
+                while (queue.Count > 0) {
+                    DeviceInstance node = queue.Dequeue();
+                    foundBefore.Add(node.ToString());
+                    foreach (DeviceInstance child in node.Children) {
+                        queue.Enqueue(child);
+                    }
+                }
+
+                queue.Clear();
+                devices.Refresh();
+                queue.Enqueue(devices);
+                while (queue.Count > 0) {
+                    DeviceInstance node = queue.Dequeue();
+                    foundAfter.Add(node.ToString());
+                    foreach (DeviceInstance child in node.Children) {
+                        queue.Enqueue(child);
+                    }
+                }
+
+                // Compare before and after. There should only be a difference if a device was added or removed.
+                int additions = 0;
+                int removals = 0;
+                foreach (string node in foundBefore) {
+                    if (!foundAfter.Contains(node)) {
+                        removals++;
+                        Console.WriteLine($"Node Removed: {node}");
+                    }
+                }
+                foreach (string node in foundAfter) {
+                    if (!foundBefore.Contains(node)) {
+                        additions++;
+                        Console.WriteLine($"Node Added: {node}");
+                    }
+                }
+
+                Assert.Multiple(() => {
+                    Assert.That(removals, Is.EqualTo(0));
+                    Assert.That(additions, Is.EqualTo(0));
+                });
+            }
+        }
+
+        [Test]
         public void DumpDeviceTree()
         {
             using (DeviceInstance devices = DeviceInstance.GetRoot()) {
