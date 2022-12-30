@@ -75,6 +75,12 @@
             PrintIndent(depth); Console.WriteLine($"  - Upper Filters: {List(device.UpperFilters)}");
             PrintIndent(depth); Console.WriteLine($"  - Lower Filters: {List(device.LowerFilters)}");
             PrintIndent(depth); Console.WriteLine($"  - Base Container ID: {device.BaseContainerId}");
+            PrintIndent(depth); Console.WriteLine($"  - Keys: {List(device.GetDeviceProperties())}");
+
+            string port = device.GetDeviceProperty<string>("PortName");
+            if (port != null) {
+                PrintIndent(depth); Console.WriteLine($"  - PortName: {port}");
+            }
 
             foreach (DeviceInstance child in device.Children) {
                 DumpDeviceTree(child, depth + 1);

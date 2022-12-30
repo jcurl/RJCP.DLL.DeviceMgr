@@ -7,14 +7,30 @@
 
     public static class Program
     {
-        public static int Main()
+        public static int Main(string[] args)
         {
             GlobalLogger.Initialize();
 
-            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
+            bool phantom = false;
+            if (args.Length > 0) {
+                if (args.Length != 1) return PrintUsage();
+                if (string.IsNullOrEmpty(args[0])) return PrintUsage();
+                if (string.Compare("-phantom", args[0], StringComparison.InvariantCultureIgnoreCase) == 0) {
+                    phantom = true;
+                }
+            }
+
+            LocateMode mode = phantom ? LocateMode.Phantom : LocateMode.Normal;
+            using (DeviceInstance devices = DeviceInstance.GetRoot(mode)) {
                 DumpDeviceTree(devices, 0);
             }
             return 0;
+        }
+
+        private static int PrintUsage()
+        {
+            Console.WriteLine("deviceinfodump.exe [-phantom]");
+            return 1;
         }
 
         private static void DumpDeviceTree(DeviceInstance device, int depth)
@@ -39,6 +55,12 @@
             PrintIndent(depth); Console.WriteLine($"  - Upper Filters: {List(device.UpperFilters)}");
             PrintIndent(depth); Console.WriteLine($"  - Lower Filters: {List(device.LowerFilters)}");
             PrintIndent(depth); Console.WriteLine($"  - Base Container ID: {device.BaseContainerId}");
+
+            string[] keys = device.GetDeviceProperties();
+            PrintIndent(depth); Console.WriteLine($"  - Keys: {List(keys)}");
+            foreach (string key in keys) {
+                PrintIndent(depth); Console.WriteLine($"  \\- Key: {key}={device.GetDeviceProperty(key)}");
+            }
 
             foreach (DeviceInstance child in device.Children) {
                 DumpDeviceTree(child, depth + 1);

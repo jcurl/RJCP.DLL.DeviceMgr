@@ -89,10 +89,12 @@
     <Compile Include="Native\Win32\CfgMgr32+CM_LOCATE_DEVINST.cs" />
     <Compile Include="Native\Win32\CfgMgr32+CONFIGRET.cs" />
     <Compile Include="Native\Win32\CfgMgr32+DN_STATUS.cs" />
+    <Compile Include="Native\Win32\CfgMgr32+RegDisposition.cs" />
     <Compile Include="Native\Win32\CfgMgr32.cs" />
     <Compile Include="Native\Win32\Kernel32+GetOsVersion.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFO.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFOEX.cs" />
+    <Compile Include="Native\Win32\Kernel32+REGSAM.cs" />
     <Compile Include="Native\Win32\Kernel32+REG_DATATYPE.cs" />
     <Compile Include="Native\Win32\Kernel32+WinPlatformId.cs" />
     <Compile Include="Native\Win32\Kernel32.cs" />

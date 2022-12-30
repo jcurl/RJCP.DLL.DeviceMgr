@@ -4,6 +4,7 @@
     using System.Runtime.InteropServices;
     using System.Security;
     using System.Text;
+    using Microsoft.Win32.SafeHandles;
 
     [SuppressUnmanagedCodeSecurity]
     internal static partial class CfgMgr32
@@ -35,5 +36,8 @@
 
         [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_DevNode_Registry_PropertyW")]
         public static extern CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, [Out] char[] buffer, ref int bufferLen, int flags);
+
+        [DllImport("cfgmgr32.dll", SetLastError = false, ExactSpelling = true, EntryPoint = "CM_Open_DevNode_Key")]
+        public static extern CONFIGRET CM_Open_DevNode_Key(SafeDevInst devInst, Kernel32.REGSAM samDesired, int hardwareProfile, RegDisposition disposition, out SafeRegistryHandle device, int flags);
     }
 }

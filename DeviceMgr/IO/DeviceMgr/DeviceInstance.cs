@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Text;
+    using Microsoft.Win32;
+    using Microsoft.Win32.SafeHandles;
     using Native;
     using Native.Win32;
 
@@ -370,6 +372,100 @@
         /// </summary>
         /// <value>The location of the device.</value>
         public string BaseContainerId { get { return m_BaseContainerId.Value; } }
+
+        /// <summary>
+        /// Gets the names of the keys for the device from the registry.
+        /// </summary>
+        /// <returns>
+        /// An array of all the keys for the device from the registry. This can be then used with
+        /// <see cref="GetDeviceProperty{T}(string, T)"/>.
+        /// </returns>
+        public string[] GetDeviceProperties()
+        {
+            using (RegistryKey driverKey = GetDeviceKey()) {
+                if (driverKey == null) {
+#if NETSTANDARD
+                    return Array.Empty<string>();
+#else
+                    return new string[0];
+#endif
+                }
+                return driverKey.GetValueNames();
+            }
+        }
+
+        /// <summary>
+        /// Gets the device property.
+        /// </summary>
+        /// <param name="keyName">Name of the key.</param>
+        /// <returns>The result. If the key doesn't exist, <see langword="null"/> is returned.</returns>
+        public object GetDeviceProperty(string keyName)
+        {
+            return GetDeviceProperty(keyName, null);
+        }
+
+        /// <summary>
+        /// Gets the device property.
+        /// </summary>
+        /// <param name="keyName">Name of the key.</param>
+        /// <param name="defValue">The value to return if the key doesn't exist.</param>
+        /// <returns>The result. If the key doesn't exist, the default value is returned.</returns>
+        public object GetDeviceProperty(string keyName, object defValue)
+        {
+            using (RegistryKey driverKey = GetDeviceKey()) {
+                return driverKey == null ?
+                    defValue :
+                    driverKey.GetValue(keyName);
+            }
+        }
+
+        /// <summary>
+        /// Gets the device property.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the result to.</typeparam>
+        /// <param name="keyName">Name of the key.</param>
+        /// <returns>The result. If the key doesn't exist, the default value is returned.</returns>
+        public T GetDeviceProperty<T>(string keyName)
+        {
+            return GetDeviceProperty<T>(keyName, default);
+        }
+
+        /// <summary>
+        /// Gets the device property.
+        /// </summary>
+        /// <typeparam name="T">The type to convert the result to.</typeparam>
+        /// <param name="keyName">Name of the key.</param>
+        /// <param name="defValue">The value to return if the key doesn't exist.</param>
+        /// <returns>The result. If the key doesn't exist, the default value is returned.</returns>
+        public T GetDeviceProperty<T>(string keyName, T defValue)
+        {
+            using (RegistryKey driverKey = GetDeviceKey()) {
+                return driverKey == null ?
+                    defValue :
+                    (T)driverKey.GetValue(keyName);
+            }
+        }
+
+        private RegistryKey GetDeviceKey()
+        {
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Open_DevNode_Key(
+                m_DevInst, Kernel32.REGSAM.KEY_READ, 0, CfgMgr32.RegDisposition.OpenExisting,
+                out SafeRegistryHandle key, 0);
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_REGISTRY_KEY) {
+                    Log.CfgMgr.TraceEvent(TraceEventType.Warning,
+                        $"Couldn't get device key, return {ret}");
+                }
+                return null;
+            }
+            if (key.IsInvalid || key.IsClosed) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Error,
+                    $"Couldn't get device key, registry is invalid or closed");
+                return null;
+            }
+
+            return RegistryKey.FromHandle(key);
+        }
 
         private readonly string m_Name;
 
