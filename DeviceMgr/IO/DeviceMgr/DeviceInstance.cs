@@ -185,13 +185,14 @@
 
             string name = GetDeviceId(devInst);
             if (name == null) return null;
+
             if (s_CachedInstances.TryGetValue(name, out DeviceInstance value)) {
                 if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
                     return value;
             }
             if (onlyCache) return null;
 
-            value = new DeviceInstance(devInst) {
+            value = new DeviceInstance(devInst, name) {
                 Parent = parent
             };
             s_CachedInstances[name] = value;
@@ -199,13 +200,19 @@
         }
         #endregion
 
-        private DeviceInstance(SafeDevInst handle)
+        private DeviceInstance(SafeDevInst handle) : this(handle, null) { }
+
+        private DeviceInstance(SafeDevInst handle, string name)
         {
             if (handle.IsInvalid || handle.IsClosed)
                 throw new InvalidOperationException();
 
             m_DevInst = handle;
-            m_Name = GetDeviceId(handle);
+
+            // This API should only be called when we're sure that we have the right name. Often, we need to get the
+            // name of the device before instantiating this object, just to see if it's cached. So we can save a call.
+
+            m_Name = name ?? GetDeviceId(handle);
             GetStatus();
             SetProperties();
         }
