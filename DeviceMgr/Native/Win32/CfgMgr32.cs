@@ -39,5 +39,11 @@
 
         [DllImport("cfgmgr32.dll", SetLastError = false, ExactSpelling = true, EntryPoint = "CM_Open_DevNode_Key")]
         public static extern CONFIGRET CM_Open_DevNode_Key(SafeDevInst devInst, Kernel32.REGSAM samDesired, int hardwareProfile, RegDisposition disposition, out SafeRegistryHandle device, int flags);
+
+        [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_Device_ID_List_SizeW")]
+        public static extern CONFIGRET CM_Get_Device_ID_List_Size(out int length, string filter, int flags);
+
+        [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_Device_ID_ListW")]
+        public static extern CONFIGRET CM_Get_Device_ID_List(string filter, [Out] char[] buffer, int length, int flags);
     }
 }

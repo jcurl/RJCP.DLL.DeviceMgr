@@ -12,24 +12,23 @@
         [Test]
         public void GetDeviceTree()
         {
-            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
-                Assert.That(devices, Is.Not.Null);
-                Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            DeviceInstance devices = DeviceInstance.GetRoot();
+            Assert.That(devices, Is.Not.Null);
+            Assert.That(devices.Children.Count, Is.GreaterThan(0));
 
-                // Check the parent / child relationship
-                Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
-                queue.Enqueue(devices);
-                while (queue.Count > 0) {
-                    DeviceInstance parent = queue.Dequeue();
-                    Console.WriteLine($"Device {parent}");
-                    foreach (DeviceInstance child in parent.Children) {
-                        Assert.That(ReferenceEquals(parent, child.Parent));
-                        if (child.Children.Count > 0) {
-                            queue.Enqueue(child);
-                        } else {
-                            // Won't be printed otherwise, as it's not added to the queue, as this is a leaf node.
-                            Console.WriteLine($"Device {child}");
-                        }
+            // Check the parent / child relationship
+            Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+            queue.Enqueue(devices);
+            while (queue.Count > 0) {
+                DeviceInstance parent = queue.Dequeue();
+                Console.WriteLine($"Device {parent}");
+                foreach (DeviceInstance child in parent.Children) {
+                    Assert.That(ReferenceEquals(parent, child.Parent));
+                    if (child.Children.Count > 0) {
+                        queue.Enqueue(child);
+                    } else {
+                        // Won't be printed otherwise, as it's not added to the queue, as this is a leaf node.
+                        Console.WriteLine($"Device {child}");
                     }
                 }
             }
@@ -48,66 +47,72 @@
             HashSet<string> foundBefore = new HashSet<string>();
             HashSet<string> foundAfter = new HashSet<string>();
 
-            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
-                Assert.That(devices, Is.Not.Null);
-                Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            DeviceInstance devices = DeviceInstance.GetRoot();
+            Assert.That(devices, Is.Not.Null);
+            Assert.That(devices.Children.Count, Is.GreaterThan(0));
 
-                Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
-                queue.Enqueue(devices);
-                while (queue.Count > 0) {
-                    DeviceInstance node = queue.Dequeue();
-                    foundBefore.Add(node.ToString());
-                    foreach (DeviceInstance child in node.Children) {
-                        queue.Enqueue(child);
-                    }
+            Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+            queue.Enqueue(devices);
+            while (queue.Count > 0) {
+                DeviceInstance node = queue.Dequeue();
+                foundBefore.Add(node.ToString());
+                foreach (DeviceInstance child in node.Children) {
+                    queue.Enqueue(child);
                 }
-
-                queue.Clear();
-                devices.Refresh();
-                queue.Enqueue(devices);
-                while (queue.Count > 0) {
-                    DeviceInstance node = queue.Dequeue();
-                    foundAfter.Add(node.ToString());
-                    foreach (DeviceInstance child in node.Children) {
-                        queue.Enqueue(child);
-                    }
-                }
-
-                // Compare before and after. There should only be a difference if a device was added or removed.
-                int additions = 0;
-                int removals = 0;
-                foreach (string node in foundBefore) {
-                    if (!foundAfter.Contains(node)) {
-                        removals++;
-                        Console.WriteLine($"Node Removed: {node}");
-                    }
-                }
-                foreach (string node in foundAfter) {
-                    if (!foundBefore.Contains(node)) {
-                        additions++;
-                        Console.WriteLine($"Node Added: {node}");
-                    }
-                }
-
-                Assert.Multiple(() => {
-                    Assert.That(removals, Is.EqualTo(0));
-                    Assert.That(additions, Is.EqualTo(0));
-                });
             }
+
+            queue.Clear();
+            devices.Refresh();
+            queue.Enqueue(devices);
+            while (queue.Count > 0) {
+                DeviceInstance node = queue.Dequeue();
+                foundAfter.Add(node.ToString());
+                foreach (DeviceInstance child in node.Children) {
+                    queue.Enqueue(child);
+                }
+            }
+
+            // Compare before and after. There should only be a difference if a device was added or removed.
+            int additions = 0;
+            int removals = 0;
+            foreach (string node in foundBefore) {
+                if (!foundAfter.Contains(node)) {
+                    removals++;
+                    Console.WriteLine($"Node Removed: {node}");
+                }
+            }
+            foreach (string node in foundAfter) {
+                if (!foundBefore.Contains(node)) {
+                    additions++;
+                    Console.WriteLine($"Node Added: {node}");
+                }
+            }
+
+            Assert.Multiple(() => {
+                Assert.That(removals, Is.EqualTo(0));
+                Assert.That(additions, Is.EqualTo(0));
+            });
         }
 
         [Test]
         public void DumpDeviceTree()
         {
-            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
-                Assert.That(devices, Is.Not.Null);
-                Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            DeviceInstance devices = DeviceInstance.GetRoot();
+            Assert.That(devices, Is.Not.Null);
+            Assert.That(devices.Children.Count, Is.GreaterThan(0));
 
-                DumpDeviceTree(devices, 0);
-            }
+            DumpDeviceTree(devices, 0);
         }
 
         private static void DumpDeviceTree(DeviceInstance device, int depth)
+        {
+            DumpDeviceNode(device, depth);
+            foreach (DeviceInstance child in device.Children) {
+                DumpDeviceTree(child, depth + 1);
+            }
+        }
+
+        private static void DumpDeviceNode(DeviceInstance device, int depth)
         {
             PrintIndent(depth); Console.WriteLine($"+ {device}");
             PrintIndent(depth); Console.WriteLine($"  - Status: {device.Status}");
@@ -135,10 +140,6 @@
             if (port != null) {
                 PrintIndent(depth); Console.WriteLine($"  - PortName: {port}");
             }
-
-            foreach (DeviceInstance child in device.Children) {
-                DumpDeviceTree(child, depth + 1);
-            }
         }
 
         private static void PrintIndent(int depth)
@@ -162,6 +163,23 @@
                 sb.Append(entry);
             }
             return sb.ToString();
+        }
+
+        [Test]
+        public void GetDeviceList()
+        {
+            IList<DeviceInstance> list = DeviceInstance.GetList();
+            Assert.That(list.Count, Is.Not.EqualTo(0));
+        }
+
+        [Test]
+        public void DumpDeviceList()
+        {
+            IList<DeviceInstance> list = DeviceInstance.GetList();
+            foreach (DeviceInstance dev in list) {
+                Assert.That(dev, Is.Not.Null);
+                DumpDeviceNode(dev, 0);
+            }
         }
     }
 }

@@ -7,17 +7,36 @@
 
     public static class Program
     {
+        static HashSet<string> s_DeviceFound = new HashSet<string>();
+
         public static int Main()
         {
             GlobalLogger.Initialize();
 
-            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
-                DumpDeviceTree(devices, 0);
+            DeviceInstance devices = DeviceInstance.GetRoot();
+            DumpDeviceTree(devices, 0);
+
+            Console.WriteLine();
+            Console.WriteLine("List of other devices:");
+            IList<DeviceInstance> list = DeviceInstance.GetList();
+            foreach (DeviceInstance entry in list) {
+                if (!s_DeviceFound.Contains(entry.ToString())) {
+                    DumpDeviceNode(entry, 0);
+                }
             }
             return 0;
         }
 
         private static void DumpDeviceTree(DeviceInstance device, int depth)
+        {
+            s_DeviceFound.Add(device.ToString());
+            DumpDeviceNode(device, depth);
+            foreach (DeviceInstance child in device.Children) {
+                DumpDeviceTree(child, depth + 1);
+            }
+        }
+
+        private static void DumpDeviceNode(DeviceInstance device, int depth)
         {
             PrintIndent(depth); Console.WriteLine($"+ {device}");
             PrintIndent(depth); Console.WriteLine($"  - Status: {device.Status}");
@@ -44,10 +63,6 @@
             PrintIndent(depth); Console.WriteLine($"  - Keys: {List(keys)}");
             foreach (string key in keys) {
                 PrintIndent(depth); Console.WriteLine($"  \\- Key: {key}={device.GetDeviceProperty(key)}");
-            }
-
-            foreach (DeviceInstance child in device.Children) {
-                DumpDeviceTree(child, depth + 1);
             }
         }
 

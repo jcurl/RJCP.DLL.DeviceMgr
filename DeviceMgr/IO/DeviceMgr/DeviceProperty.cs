@@ -53,11 +53,9 @@
                 m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 IntPtr.Zero, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS && ret != CfgMgr32.CONFIGRET.CR_BUFFER_SMALL) {
-                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
-                    ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
+                if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
                         $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
-                }
                 return string.Empty;
             }
 
@@ -112,11 +110,9 @@
                 m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 IntPtr.Zero, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS && ret != CfgMgr32.CONFIGRET.CR_BUFFER_SMALL) {
-                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
-                    ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
+                if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
                         $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
-                }
 #if NETSTANDARD
                 return Array.Empty<string>();
 #else
@@ -184,11 +180,9 @@
                 m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 out int value, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
-                    ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
+                if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
                         $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
-                }
                 return 0;
             }
 
@@ -199,6 +193,16 @@
                 return 0;
             }
             return value;
+        }
+
+        private bool ShouldWarnProperty(CfgMgr32.CONFIGRET ret)
+        {
+            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE) return false;
+            if (ret == CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) return false;
+            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE &&
+                m_DeviceProperty == CfgMgr32.CM_DRP.PHYSICAL_DEVICE_OBJECT_NAME) return false;
+
+            return true;
         }
     }
 }

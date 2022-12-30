@@ -9,14 +9,17 @@
     using Native;
     using Native.Win32;
 
+#if NETSTANDARD
+    using System.Buffers;
+#endif
+
     /// <summary>
     /// A Device Instance representing a device in the system.
     /// </summary>
-    public class DeviceInstance : IDisposable
+    public class DeviceInstance
     {
         private readonly SafeDevInst m_DevInst;
 
-        #region Getting the Device Tree
         /// <summary>
         /// Gets a tree of all devices, starting from the root, for devices that are available in the system.
         /// </summary>
@@ -47,53 +50,64 @@
             }
         }
 
-        private void PopulateChildren(bool overwrite)
+        public static IList<DeviceInstance> GetList()
         {
-            if (!overwrite && (m_IsPopulated || m_Children.Count > 0)) return;
+            if (!Platform.IsWinNT())
+                throw new PlatformNotSupportedException();
 
-            if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
-                throw new ObjectDisposedException(nameof(DeviceInstance));
+            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device list");
 
-            List<DeviceInstance> children = new List<DeviceInstance>();
-
-            CfgMgr32.CONFIGRET ret;
-
-            ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
-            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) return;
+            IList<string> instances;
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_List_Size(out int size, null, 0);
+#if NETSTANDARD
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
-                return;
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
+                return Array.Empty<DeviceInstance>();
             }
-            DeviceInstance node = GetDeviceInstance(child, this);
-            children.Add(node);
 
-            bool finished = false;
-            while (!finished) {
-                ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
-                switch (ret) {
-                case CfgMgr32.CONFIGRET.CR_SUCCESS:
-                    node = GetDeviceInstance(sibling, this);
-                    children.Add(node);
-                    break;
-                default:
-                    if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
-                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get sibling node from {node.m_Name}, return {ret}");
-                    finished = true;
-                    break;
+            char[] blob = ArrayPool<char>.Shared.Rent(size);
+            try {
+                ret = CfgMgr32.CM_Get_Device_ID_List(null, blob, size, 0);
+                if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                    Log.CfgMgr.TraceEvent(TraceEventType.Warning,
+                        $"Couldn't get list, return {ret} (length {size})");
+                    return Array.Empty<DeviceInstance>();
+                }
+                instances = Marshalling.GetMultiSz(blob.AsSpan(0, size));
+            } finally {
+                ArrayPool<char>.Shared.Return(blob);
+            }
+#else
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
+                return new DeviceInstance[0];
+            }
+
+            char[] blob = new char[size];
+            ret = CfgMgr32.CM_Get_Device_ID_List(null, blob, size, 0);
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning,
+                    $"Couldn't get list, return {ret} (length {size})");
+                return new DeviceInstance[0];
+            }
+            instances = Marshalling.GetMultiSz(blob);
+#endif
+
+            List<DeviceInstance> devices = new List<DeviceInstance>();
+            lock (s_CachedLock) {
+                foreach (string instance in instances) {
+                    SafeDevInst devInst;
+                    ret = CfgMgr32.CM_Locate_DevNode(out devInst, instance, CfgMgr32.CM_LOCATE_DEVINST.PHANTOM);
+                    if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                        Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
+                    } else {
+                        DeviceInstance node = GetDeviceInstance(devInst, null);
+                        devices.Add(node);
+                    }
                 }
             }
-
-            // Now recurse into the new nodes and populate them also.
-            foreach (DeviceInstance dev in children) {
-                dev.PopulateChildren(false);
-            }
-
-            // Only make the tree visible once it is complete. This makes assignment atomic at the end (assignment of
-            // reference types is atomic).
-            m_Children = children;
-            m_IsPopulated = true;
+            return devices;
         }
-        #endregion
 
         #region Cached Device Instances
         private static readonly object s_CachedLock = new object();
@@ -172,7 +186,6 @@
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Status(out CfgMgr32.DN_STATUS status, out int problem, m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get status, return {ret}");
                 HasProblem = true;
                 ProblemCode = DeviceProblem.DeviceNotThere;
                 return;
@@ -181,6 +194,53 @@
             Status = DeviceStatusConvert.Get(status);
             HasProblem = (status & CfgMgr32.DN_STATUS.HAS_PROBLEM) != 0;
             ProblemCode = (DeviceProblem)problem;
+        }
+
+        private void PopulateChildren(bool overwrite)
+        {
+            if (!overwrite && (m_IsPopulated || m_Children.Count > 0)) return;
+
+            if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
+                throw new ObjectDisposedException(nameof(DeviceInstance));
+
+            List<DeviceInstance> children = new List<DeviceInstance>();
+
+            CfgMgr32.CONFIGRET ret;
+
+            ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
+            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) return;
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
+                return;
+            }
+            DeviceInstance node = GetDeviceInstance(child, this);
+            children.Add(node);
+
+            bool finished = false;
+            while (!finished) {
+                ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
+                switch (ret) {
+                case CfgMgr32.CONFIGRET.CR_SUCCESS:
+                    node = GetDeviceInstance(sibling, this);
+                    children.Add(node);
+                    break;
+                default:
+                    if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
+                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get sibling node from {node.m_Name}, return {ret}");
+                    finished = true;
+                    break;
+                }
+            }
+
+            // Now recurse into the new nodes and populate them also.
+            foreach (DeviceInstance dev in children) {
+                dev.PopulateChildren(false);
+            }
+
+            // Only make the tree visible once it is complete. This makes assignment atomic at the end (assignment of
+            // reference types is atomic).
+            m_Children = children;
+            m_IsPopulated = true;
         }
 
         /// <summary>
@@ -553,38 +613,14 @@
             return m_Name;
         }
 
-        // Properties we will record
-        // * Properties, these will be fixed types as per the CfgMgr32.h file
-        // * Properties, which we get from the registry
+        // There are no objects to dispose (at this time). The SafeDevInst object can be disposed of, but it doesn't do
+        // anything anyway. We'll just let the finalizer deal with it.
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting managed and unmanaged
-        /// resources.
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        // Secondly, disposing cached elements is dangerous. We'd need to remove it from the cache. But there might be
+        // multiple instances of the same object somewhere else, and when Code Block X disposes of the object,
+        // unexpected Code Block Y sees the object as disposed. That would be bad design.
 
-        /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
-        /// </summary>
-        /// <param name="disposing">
-        /// <see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release
-        /// only unmanaged resources.
-        /// </param>
-        protected virtual void Dispose(bool disposing)
-        {
-            // There are no objects to dispose (at this time). The SafeDevInst object can be disposed of, but it doesn't
-            // do anything anyway. We'll just let the finalizer deal with it.
-
-            // Secondly, disposing cached elements is dangerous. We'd need to remove it from the cache. But there might
-            // be multiple instances of the same object somewhere else, and when Code Block X disposes of the object,
-            // unexpected Code Block Y sees the object as disposed. That would be bad design.
-
-            // As such, and documented in SafeDevInst, it's just a convenient wrapper, and the Windows API doesn't offer
-            // a way to close these objects since Windows 2000 (till Windows 11), so it won't in the future either.
-        }
+        // As such, and documented in SafeDevInst, it's just a convenient wrapper, and the Windows API doesn't offer a
+        // way to close these objects since Windows 2000 (till Windows 11), so it won't in the future either.
     }
 }
