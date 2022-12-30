@@ -20,7 +20,10 @@
         /// <summary>
         /// Gets a tree of all devices, starting from the root, for devices that are available in the system.
         /// </summary>
-        /// <returns>A tree of <see cref="DeviceInstance"/> objects.</returns>
+        /// <returns>
+        /// A tree of <see cref="DeviceInstance"/> objects. If there was a problem retrieving the tree,
+        /// <see langword="null"/> is returned
+        /// </returns>
         /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
         public static DeviceInstance GetRoot()
         {
@@ -44,7 +47,7 @@
 
         private void PopulateChildren()
         {
-            if (m_DevInst.IsInvalid)
+            if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
                 throw new ObjectDisposedException(nameof(DeviceInstance));
             if (m_IsPopulated || m_Children.Count > 0)
                 throw new InvalidOperationException("Device Instance already populated with children");
@@ -55,27 +58,27 @@
             ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
             if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) return;
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"Couldn't get child node, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
                 return;
             }
-            m_Children.Add(new DeviceInstance(child) {
+            DeviceInstance node = new DeviceInstance(child) {
                 Parent = this
-            });
+            };
+            m_Children.Add(node);
 
             bool finished = false;
-            SafeDevInst node = child;
             while (!finished) {
-                ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node, 0);
+                ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
                 switch (ret) {
                 case CfgMgr32.CONFIGRET.CR_SUCCESS:
-                    m_Children.Add(new DeviceInstance(sibling) {
+                    node = new DeviceInstance(sibling) {
                         Parent = this
-                    });
-                    node = sibling;
+                    };
+                    m_Children.Add(node);
                     break;
                 default:
                     if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
-                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"Couldn't get sibling node, return {ret}");
+                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get sibling node from {node.m_Name}, return {ret}");
                     finished = true;
                     break;
                 }
@@ -97,37 +100,37 @@
             m_Name = GetDeviceId(handle);
             GetStatus();
 
-            m_DevDesc = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.DEVICEDESC);
-            m_Service = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.SERVICE);
-            m_Class = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.CLASS);
-            m_ClassGuid = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.CLASSGUID);
-            m_Driver = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.DRIVER);
-            m_Manufacturer = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.MFG);
-            m_FriendlyName = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.FRIENDLYNAME);
-            m_Location = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.LOCATION_INFORMATION);
-            m_PhysicalDevice = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.PHYSICAL_DEVICE_OBJECT_NAME);
-            m_ConfigFlags = new DeviceProperty<int>(handle, CfgMgr32.CM_DRP.CONFIGFLAGS);
-            m_Capabilities = new DeviceProperty<int>(handle, CfgMgr32.CM_DRP.CAPABILITIES);
-            m_HardwareIds = new DeviceProperty<string[]>(handle, CfgMgr32.CM_DRP.HARDWAREID);
-            m_CompatibleIds = new DeviceProperty<string[]>(handle, CfgMgr32.CM_DRP.COMPATIBLEIDS);
-            m_UpperFilters = new DeviceProperty<string[]>(handle, CfgMgr32.CM_DRP.UPPERFILTERS);
-            m_LowerFilters = new DeviceProperty<string[]>(handle, CfgMgr32.CM_DRP.LOWERFILTERS);
-            m_LocationPaths = new DeviceProperty<string[]>(handle, CfgMgr32.CM_DRP.LOCATION_PATHS);
-            m_BaseContainerId = new DeviceProperty<string>(handle, CfgMgr32.CM_DRP.BASE_CONTAINERID);
+            m_DevDesc = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.DEVICEDESC);
+            m_Service = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.SERVICE);
+            m_Class = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.CLASS);
+            m_ClassGuid = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.CLASSGUID);
+            m_Driver = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.DRIVER);
+            m_Manufacturer = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.MFG);
+            m_FriendlyName = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.FRIENDLYNAME);
+            m_Location = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.LOCATION_INFORMATION);
+            m_PhysicalDevice = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.PHYSICAL_DEVICE_OBJECT_NAME);
+            m_ConfigFlags = new DeviceProperty<int>(this, CfgMgr32.CM_DRP.CONFIGFLAGS);
+            m_Capabilities = new DeviceProperty<int>(this, CfgMgr32.CM_DRP.CAPABILITIES);
+            m_HardwareIds = new DeviceProperty<string[]>(this, CfgMgr32.CM_DRP.HARDWAREID);
+            m_CompatibleIds = new DeviceProperty<string[]>(this, CfgMgr32.CM_DRP.COMPATIBLEIDS);
+            m_UpperFilters = new DeviceProperty<string[]>(this, CfgMgr32.CM_DRP.UPPERFILTERS);
+            m_LowerFilters = new DeviceProperty<string[]>(this, CfgMgr32.CM_DRP.LOWERFILTERS);
+            m_LocationPaths = new DeviceProperty<string[]>(this, CfgMgr32.CM_DRP.LOCATION_PATHS);
+            m_BaseContainerId = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.BASE_CONTAINERID);
         }
 
         private static string GetDeviceId(SafeDevInst devInst)
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_Size(out int length, devInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get device identifier length, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst.DangerousGetHandle():x}: Couldn't get device identifier length, return {ret}");
                 return null;
             }
 
             StringBuilder buffer = new StringBuilder(length + 1);
             ret = CfgMgr32.CM_Get_Device_ID(devInst, buffer, length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get device identifier for length {length}, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst.DangerousGetHandle():x}: Couldn't get device identifier for length {length}, return {ret}");
                 return null;
             }
 
@@ -138,13 +141,35 @@
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Status(out CfgMgr32.DN_STATUS status, out int problem, m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"Couldn't get status for {m_Name}, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get status, return {ret}");
                 return;
             }
 
             Status = DeviceStatusConvert.Get(status);
             HasProblem = (status & CfgMgr32.DN_STATUS.HAS_PROBLEM) != 0;
             ProblemCode = (DeviceProblem)problem;
+        }
+
+        /// <summary>
+        /// Gets the underlying handle of the DevInst for the CfgMgr32 API.
+        /// </summary>
+        /// <value>The underlying configuration manager handle.</value>
+        public SafeDevInst Handle
+        {
+            get
+            {
+                // We make a copy of the handle. The copy is because if the user closes it, it won't affect this
+                // implementation. Also, closing the handle has no effect.
+                return new SafeDevInst(m_DevInst.DangerousGetHandle());
+            }
+        }
+
+        internal SafeDevInst InternalHandle
+        {
+            get
+            {
+                return m_DevInst;
+            }
         }
 
         /// <summary>
@@ -428,13 +453,13 @@
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_REGISTRY_KEY) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get device key, return {ret}");
+                        $"{m_Name}: Couldn't get device key, return {ret}");
                 }
                 return null;
             }
             if (key.IsInvalid || key.IsClosed) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error,
-                    $"Couldn't get device key, registry is invalid or closed");
+                    $"{m_Name}: Couldn't get device key, registry is invalid or closed");
                 return null;
             }
 

@@ -11,12 +11,12 @@
 
     internal class DeviceProperty<T>
     {
-        private readonly SafeDevInst m_DevInst;
+        private readonly DeviceInstance m_DevInst;
         private readonly CfgMgr32.CM_DRP m_DeviceProperty;
         private bool m_Retrieved;
         private object m_Value;
 
-        public DeviceProperty(SafeDevInst devInst, CfgMgr32.CM_DRP deviceProperty)
+        public DeviceProperty(DeviceInstance devInst, CfgMgr32.CM_DRP deviceProperty)
         {
             m_DevInst = devInst;
             m_DeviceProperty = deviceProperty;
@@ -50,13 +50,13 @@
             CfgMgr32.CONFIGRET ret;
             int length = 0;
             ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                m_DevInst, m_DeviceProperty, out int dataType,
+                m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 IntPtr.Zero, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS && ret != CfgMgr32.CONFIGRET.CR_BUFFER_SMALL) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
                     ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get property for {m_DeviceProperty}, return {ret}");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
                 }
                 return string.Empty;
             }
@@ -64,14 +64,14 @@
             if (length <= 0) {
                 if (length < 0)
                     Log.CfgMgr.TraceEvent(TraceEventType.Error,
-                        $"Couldn't get property for {m_DeviceProperty}, length is negative ({length})");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, length is negative ({length})");
                 return string.Empty;
             }
 
             Kernel32.REG_DATATYPE regDataType = (Kernel32.REG_DATATYPE)dataType;
             if (regDataType != Kernel32.REG_DATATYPE.REG_SZ) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                    $"Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_SZ");
+                    $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_SZ");
                 return string.Empty;
             }
 
@@ -86,10 +86,10 @@
                 int bloblen = length / 2;
 
                 ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                    m_DevInst, m_DeviceProperty, out _, blob, ref length, 0);
+                    m_DevInst.InternalHandle, m_DeviceProperty, out _, blob, ref length, 0);
                 if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
                     return string.Empty;
                 }
 
@@ -109,13 +109,13 @@
             CfgMgr32.CONFIGRET ret;
             int length = 0;
             ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                m_DevInst, m_DeviceProperty, out int dataType,
+                m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 IntPtr.Zero, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS && ret != CfgMgr32.CONFIGRET.CR_BUFFER_SMALL) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
                     ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get property for {m_DeviceProperty}, return {ret}");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
                 }
 #if NETSTANDARD
                 return Array.Empty<string>();
@@ -127,7 +127,7 @@
             if (length <= 0) {
                 if (length < 0)
                     Log.CfgMgr.TraceEvent(TraceEventType.Error,
-                        $"Couldn't get property for {m_DeviceProperty}, length is negative ({length})");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, length is negative ({length})");
 #if NETSTANDARD
                 return Array.Empty<string>();
 #else
@@ -138,7 +138,7 @@
             Kernel32.REG_DATATYPE regDataType = (Kernel32.REG_DATATYPE)dataType;
             if (regDataType != Kernel32.REG_DATATYPE.REG_MULTI_SZ) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                    $"Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_MULTI_SZ");
+                    $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_MULTI_SZ");
 #if NETSTANDARD
                 return Array.Empty<string>();
 #else
@@ -157,10 +157,10 @@
                 int bloblen = length / 2;
 
                 ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                    m_DevInst, m_DeviceProperty, out dataType, blob, ref length, 0);
+                    m_DevInst.InternalHandle, m_DeviceProperty, out dataType, blob, ref length, 0);
                 if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
 #if NETSTANDARD
                     return Array.Empty<string>();
 #else
@@ -205,13 +205,13 @@
         {
             int length = 4;
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                m_DevInst, m_DeviceProperty, out int dataType,
+                m_DevInst.InternalHandle, m_DeviceProperty, out int dataType,
                 out int value, ref length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_VALUE &&
                     ret != CfgMgr32.CONFIGRET.CR_INVALID_PROPERTY) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get property for {m_DeviceProperty}, return {ret}");
+                        $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret}");
                 }
                 return 0;
             }
@@ -219,7 +219,7 @@
             Kernel32.REG_DATATYPE regDataType = (Kernel32.REG_DATATYPE)dataType;
             if (regDataType != Kernel32.REG_DATATYPE.REG_DWORD) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                    $"Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_DWORD");
+                    $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, data type {regDataType} is not expected REG_DWORD");
                 return 0;
             }
             return value;

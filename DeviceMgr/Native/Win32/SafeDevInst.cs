@@ -1,12 +1,33 @@
 ﻿namespace RJCP.Native.Win32
 {
+    using System;
     using System.Runtime.ConstrainedExecution;
     using Microsoft.Win32.SafeHandles;
 
-    internal class SafeDevInst : SafeHandleZeroOrMinusOneIsInvalid
+    /// <summary>
+    /// Gets a handle to the CfgMgr32 DevInst object.
+    /// </summary>
+    public class SafeDevInst : SafeHandleZeroOrMinusOneIsInvalid
     {
-        protected SafeDevInst() : base(true) { }
+        private SafeDevInst() : base(true) { }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SafeDevInst"/> class.
+        /// </summary>
+        /// <param name="newHandle">The handle to assign to this object.</param>
+        public SafeDevInst(IntPtr newHandle) : base(true)
+        {
+            handle = newHandle;
+        }
+
+        /// <summary>
+        /// Executes the code required to free the handle.
+        /// </summary>
+        /// <returns>
+        /// Returns <see langword="true"/> if the handle is released successfully; otherwise, in the event of a
+        /// catastrophic failure, <see langword="false"/>. In this case, it generates a releaseHandleFailed MDA Managed
+        /// Debugging Assistant.
+        /// </returns>
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
         protected override bool ReleaseHandle()
         {
@@ -27,6 +48,9 @@
 
             //return Kernel32.CloseHandle(handle);
 
+            // Also, please note, that it is expected that closing this handle has no effect, as when we return a new
+            // handle via DeviceInstance.Handle, we copy it, so if the user closes that copy (which has no effect), it
+            // won't affect us here.
             SetHandleAsInvalid();
             return true;
         }
