@@ -206,7 +206,7 @@
 #endif
         private static bool IsSet(CfgMgr32.DN_STATUS status, CfgMgr32.DN_STATUS bit)
         {
-            return ((int)status & (int)bit) != 0;
+            return unchecked((int)status & (int)bit) != 0;
         }
 
         public static DeviceStatus Get(CfgMgr32.DN_STATUS status)
