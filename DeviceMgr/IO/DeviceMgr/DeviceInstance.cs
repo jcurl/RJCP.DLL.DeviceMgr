@@ -24,42 +24,16 @@
         /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
         public static DeviceInstance GetRoot()
         {
-            return GetRoot(LocateMode.Normal);
-        }
-
-        /// <summary>
-        /// Gets a tree of all devices, starting from the root.
-        /// </summary>
-        /// <param name="mode">
-        /// The mode, defining what devices to query. A value of <see cref="LocateMode.Normal"/> returns devices that
-        /// are present. A value of <see cref="LocateMode.Phantom"/> provides devices that might not be attached at the
-        /// current time.
-        /// </param>
-        /// <returns>A tree of <see cref="DeviceInstance"/> objects.</returns>
-        /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
-        /// <exception cref="ArgumentException">Invalid mode.</exception>
-        public static DeviceInstance GetRoot(LocateMode mode)
-        {
             if (!Platform.IsWinNT())
                 throw new PlatformNotSupportedException();
 
-            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device tree for {mode}");
+            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device tree");
 
             SafeDevInst devInst;
             CfgMgr32.CONFIGRET ret;
-            switch (mode) {
-            case LocateMode.Normal:
-                ret = CfgMgr32.CM_Locate_DevNode(out devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
-                break;
-            case LocateMode.Phantom:
-                ret = CfgMgr32.CM_Locate_DevNode(out devInst, null, CfgMgr32.CM_LOCATE_DEVINST.PHANTOM);
-                break;
-            default:
-                throw new ArgumentException("Invalid mode");
-            }
-
+            ret = CfgMgr32.CM_Locate_DevNode(out devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get root node for {mode}, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get root node, return {ret}");
                 return null;
             }
 

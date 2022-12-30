@@ -7,30 +7,14 @@
 
     public static class Program
     {
-        public static int Main(string[] args)
+        public static int Main()
         {
             GlobalLogger.Initialize();
 
-            bool phantom = false;
-            if (args.Length > 0) {
-                if (args.Length != 1) return PrintUsage();
-                if (string.IsNullOrEmpty(args[0])) return PrintUsage();
-                if (string.Compare("-phantom", args[0], StringComparison.InvariantCultureIgnoreCase) == 0) {
-                    phantom = true;
-                }
-            }
-
-            LocateMode mode = phantom ? LocateMode.Phantom : LocateMode.Normal;
-            using (DeviceInstance devices = DeviceInstance.GetRoot(mode)) {
+            using (DeviceInstance devices = DeviceInstance.GetRoot()) {
                 DumpDeviceTree(devices, 0);
             }
             return 0;
-        }
-
-        private static int PrintUsage()
-        {
-            Console.WriteLine("deviceinfodump.exe [-phantom]");
-            return 1;
         }
 
         private static void DumpDeviceTree(DeviceInstance device, int depth)
