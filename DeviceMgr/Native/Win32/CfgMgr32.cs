@@ -45,5 +45,8 @@
 
         [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_Device_ID_ListW")]
         public static extern CONFIGRET CM_Get_Device_ID_List(string filter, [Out] char[] buffer, int length, int flags);
+
+        [DllImport("cfgmgr32.dll", SetLastError = false, ExactSpelling = true, EntryPoint = "CM_Get_Parent")]
+        public static extern CONFIGRET CM_Get_Parent(out SafeDevInst parentDevInst, SafeDevInst devInst, int flags);
     }
 }

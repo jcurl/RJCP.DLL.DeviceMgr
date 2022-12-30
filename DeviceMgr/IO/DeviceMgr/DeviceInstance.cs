@@ -50,6 +50,17 @@
             }
         }
 
+        /// <summary>
+        /// Gets the list of all devices in the system, even if they're not physicall present.
+        /// </summary>
+        /// <returns>A list of all devices in the system.</returns>
+        /// <remarks>
+        /// Even though the list is returned as a flat list, the <see cref="Children"/> and <see cref="Parent"/> fields
+        /// can be used to build a device tree. The easiest way to get the root node of the tree is to call
+        /// <see cref="GetRoot()"/> after calling this method. It will only locate the root node, and won't reiterate
+        /// the children.
+        /// </remarks>
+        /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
         public static IList<DeviceInstance> GetList()
         {
             if (!Platform.IsWinNT())
@@ -105,8 +116,57 @@
                         devices.Add(node);
                     }
                 }
+
+                // Now check for the parents
+                foreach (DeviceInstance device in devices) {
+                    // Check if we have the parent. If we do, we add it.
+                    QueryParent(device);
+                }
+
+                // Now we rebuild the children tree
+                Dictionary<DeviceInstance, List<DeviceInstance>> childrenTree =
+                    new Dictionary<DeviceInstance, List<DeviceInstance>>();
+                foreach (DeviceInstance device in devices) {
+                    if (device.Parent != null) {
+                        if (!childrenTree.TryGetValue(device.Parent, out List<DeviceInstance> children)) {
+                            children = new List<DeviceInstance>();
+                            childrenTree.Add(device.Parent, children);
+                        }
+                        children.Add(device);
+                    }
+                }
+                foreach (var entry in childrenTree) {
+                    // We will replace the entries at the end, so that if another thread is enumerating these entries,
+                    // they'll see either the old values or the new values, but the list won't change dynamically on
+                    // them.
+                    entry.Key.m_Children = entry.Value;
+                    entry.Key.m_IsPopulated = true;
+                }
             }
             return devices;
+        }
+
+        private static void QueryParent(DeviceInstance device)
+        {
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Parent(out SafeDevInst parent, device.m_DevInst, 0);
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
+                    Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{device}: Couldn't get parent, return {ret}");
+                return;
+            }
+
+            DeviceInstance parentDev = GetDeviceInstance(parent, null, true);
+            if (parentDev != null) {
+                if (device.Parent == null) {
+                    device.Parent = parentDev;
+                } else if (!ReferenceEquals(parentDev, device.Parent)) {
+                    Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Assigned parent differs, old={device.Parent}, new={parent}");
+                }
+            } else {
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Parent unknown");
+                parentDev = GetDeviceInstance(parent, null);
+                QueryParent(parentDev);
+            }
         }
 
         #region Cached Device Instances
@@ -115,14 +175,21 @@
 
         private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent)
         {
+            return GetDeviceInstance(devInst, parent, false);
+        }
+
+        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent, bool onlyCache)
+        {
             // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
             // overhead of locking for the usual case of iterating only once.
 
             string name = GetDeviceId(devInst);
+            if (name == null) return null;
             if (s_CachedInstances.TryGetValue(name, out DeviceInstance value)) {
                 if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
                     return value;
             }
+            if (onlyCache) return null;
 
             value = new DeviceInstance(devInst) {
                 Parent = parent
@@ -198,7 +265,9 @@
 
         private void PopulateChildren(bool overwrite)
         {
-            if (!overwrite && (m_IsPopulated || m_Children.Count > 0)) return;
+            if (!overwrite) {
+                if (m_IsPopulated || m_Children.Count > 0) return;
+            }
 
             if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
                 throw new ObjectDisposedException(nameof(DeviceInstance));
@@ -208,9 +277,15 @@
             CfgMgr32.CONFIGRET ret;
 
             ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
-            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) return;
+            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) {
+                m_Children = children;
+                m_IsPopulated = true;
+                return;
+            }
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
+                m_Children = children;
+                m_IsPopulated = true;
                 return;
             }
             DeviceInstance node = GetDeviceInstance(child, this);
@@ -563,7 +638,9 @@
         /// Refreshes this instance.
         /// </summary>
         /// <remarks>
-        /// This method should be used if it is believed that this node, and the children might have changed.
+        /// This method should be used if it is believed that this node, and the children might have changed. Refreshing
+        /// from this tree will remove nodes that are not currently connected / existing, thus removing entries that may
+        /// have been populated by <see cref="GetList()"/>.
         /// </remarks>
         public void Refresh()
         {
