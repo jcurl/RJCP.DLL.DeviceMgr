@@ -1,8 +1,8 @@
 ﻿namespace RJCP.IO.DeviceMgr
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
+    using Native;
     using Native.Win32;
 
 #if NETSTANDARD
@@ -151,9 +151,6 @@
 #if NETSTANDARD
             char[] blob = ArrayPool<char>.Shared.Rent(length / 2);
             try {
-#else
-            char[] blob = new char[length / 2];
-#endif
                 int bloblen = length / 2;
 
                 ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
@@ -161,43 +158,22 @@
                 if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
                         $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
-#if NETSTANDARD
                     return Array.Empty<string>();
-#else
-                return new string[0];
-#endif
                 }
-
-                List<string> strings = new List<string>();
-                int cur = 0;
-                int len = bloblen;
-
-                while (cur < len) {
-                    int nextNull = cur;
-                    while (nextNull < len && blob[nextNull] != (char)0) {
-                        nextNull++;
-                    }
-
-                    if (nextNull < len) {
-                        if (nextNull - cur > 0) {
-                            strings.Add(new string(blob, cur, nextNull - cur));
-                        } else {
-                            // we found an empty string.  But if we're at the end of the data,
-                            // it's just the extra null terminator.
-                            if (nextNull != len - 1)
-                                strings.Add(string.Empty);
-                        }
-                    } else {
-                        strings.Add(new string(blob, cur, len - cur));
-                    }
-                    cur = nextNull + 1;
-                }
-
-                return strings.ToArray();
-#if NETSTANDARD
+                return Marshalling.GetMultiSz(blob.AsSpan(0, bloblen)).ToArray();
             } finally {
                 ArrayPool<char>.Shared.Return(blob);
             }
+#else
+            char[] blob = new char[length / 2];
+            ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
+                    m_DevInst.InternalHandle, m_DeviceProperty, out dataType, blob, ref length, 0);
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning,
+                    $"{m_DevInst}: Couldn't get property for {m_DeviceProperty}, return {ret} (length {length})");
+                return new string[0];
+            }
+            return Marshalling.GetMultiSz(blob).ToArray();
 #endif
         }
 
