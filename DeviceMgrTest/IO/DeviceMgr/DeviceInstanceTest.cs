@@ -196,6 +196,18 @@
         }
 
         [Test]
+        public void GetDeviceListNormal()
+        {
+            IList<DeviceInstance> list = DeviceInstance.GetList(LocateMode.Normal);
+            Assert.That(list.Count, Is.Not.EqualTo(0));
+
+            foreach (DeviceInstance entry in list) {
+                CheckDeviceTree(entry);
+                DumpDeviceNode(entry, 0, false);
+            }
+        }
+
+        [Test]
         public void DumpDeviceList()
         {
             IList<DeviceInstance> list = DeviceInstance.GetList();

@@ -52,17 +52,41 @@
         /// Gets the list of all devices in the system, even if they're not physicall present.
         /// </summary>
         /// <returns>A list of all devices in the system.</returns>
+        /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
         /// <remarks>
         /// Even though the list is returned as a flat list, the <see cref="Children"/> and <see cref="Parent"/> fields
         /// can be used to build a device tree. The easiest way to get the root node of the tree is to call
         /// <see cref="GetRoot()"/> after calling this method. It will only locate the root node, and won't reiterate
         /// the children.
         /// </remarks>
-        /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
         public static IList<DeviceInstance> GetList()
+        {
+            return GetList(LocateMode.Phantom);
+        }
+
+        /// <summary>
+        /// Gets the list of all devices in the system, even if they're not physicall present.
+        /// </summary>
+        /// <param name="mode">The query mode when locating devices.</param>
+        /// <returns>A list of all devices in the system.</returns>
+        /// <exception cref="PlatformNotSupportedException"></exception>
+        /// <remarks>
+        /// Even though the list is returned as a flat list, the <see cref="Children"/> and <see cref="Parent"/> fields
+        /// can be used to build a device tree. The easiest way to get the root node of the tree is to call
+        /// <see cref="GetRoot()"/> after calling this method. It will only locate the root node, and won't reiterate
+        /// the children.
+        /// </remarks>
+        public static IList<DeviceInstance> GetList(LocateMode mode)
         {
             if (!Platform.IsWinNT())
                 throw new PlatformNotSupportedException();
+
+            CfgMgr32.CM_LOCATE_DEVINST cmMode;
+            switch (mode) {
+            case LocateMode.Normal: cmMode = CfgMgr32.CM_LOCATE_DEVINST.NORMAL; break;
+            case LocateMode.Phantom: cmMode = CfgMgr32.CM_LOCATE_DEVINST.PHANTOM; break;
+            default: throw new ArgumentException("Invalid mode", nameof(mode));
+            }
 
             Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device list");
 
@@ -105,9 +129,10 @@
             List<DeviceInstance> devices = new List<DeviceInstance>();
             lock (s_CachedLock) {
                 foreach (string instance in instances) {
-                    ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, CfgMgr32.CM_LOCATE_DEVINST.PHANTOM);
+                    ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, cmMode);
                     if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                        Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
+                        if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
+                            Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
                     } else {
                         DeviceInstance node = GetDeviceInstance(devInst, null);
                         devices.Add(node);
