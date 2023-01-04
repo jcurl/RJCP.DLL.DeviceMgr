@@ -14,7 +14,7 @@
     <RootNamespace>RJCP</RootNamespace>
 
     <Authors>Jason Curl</Authors>
-    <Copyright>(C) 2022, Jason Curl</Copyright>
+    <Copyright>(C) 2022-2023, Jason Curl</Copyright>
     <Company></Company>
     <PackageId>RJCP.IO.Device</PackageId>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -24,7 +24,7 @@
     <Description>Get Windows Device Information.</Description>
     <Version>0.8.0</Version>
 
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Default</AnalysisMode>
@@ -35,10 +35,6 @@
 
     <RevisionControl>git</RevisionControl>
     <RevisionControlLabel>release/v$(Version)</RevisionControlLabel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(SignAssembly)' == 'true'">
-    <DefineConstants>$(DefineConstants);SIGN</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug'">
@@ -92,6 +88,8 @@
     <Compile Include="Native\Win32\CfgMgr32+DN_STATUS.cs" />
     <Compile Include="Native\Win32\CfgMgr32+RegDisposition.cs" />
     <Compile Include="Native\Win32\CfgMgr32.cs" />
+    <None Include="Native\Win32\CfgMgr32.NetCore.cs"/>
+    <None Include="Native\Win32\CfgMgr32.NetFramework.cs"/>
     <Compile Include="Native\Win32\Kernel32+GetOsVersion.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFO.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFOEX.cs" />
@@ -106,6 +104,14 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
     <Compile Include="IO\DeviceMgr\ReadOnlyList.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard'">
+    <Compile Include="Native\Win32\CfgMgr32.NetCore.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Compile Include="Native\Win32\CfgMgr32.NetFramework.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -90,41 +90,15 @@
 
             Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device list");
 
-            IList<string> instances;
-            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_List_Size(out int size, null, 0);
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_List(null, out string[] instances);
+            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
 #if NETSTANDARD
-            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
                 return Array.Empty<DeviceInstance>();
-            }
-
-            char[] blob = ArrayPool<char>.Shared.Rent(size);
-            try {
-                ret = CfgMgr32.CM_Get_Device_ID_List(null, blob, size, 0);
-                if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                    Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"Couldn't get list, return {ret} (length {size})");
-                    return Array.Empty<DeviceInstance>();
-                }
-                instances = Marshalling.GetMultiSz(blob.AsSpan(0, size));
-            } finally {
-                ArrayPool<char>.Shared.Return(blob);
-            }
 #else
-            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
                 return new DeviceInstance[0];
-            }
-
-            char[] blob = new char[size];
-            ret = CfgMgr32.CM_Get_Device_ID_List(null, blob, size, 0);
-            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                    $"Couldn't get list, return {ret} (length {size})");
-                return new DeviceInstance[0];
-            }
-            instances = Marshalling.GetMultiSz(blob);
 #endif
+            }
 
             List<DeviceInstance> devices = new List<DeviceInstance>();
             lock (s_CachedLock) {

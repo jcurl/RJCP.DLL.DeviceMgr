@@ -68,6 +68,10 @@
             CR_INVALID_CONFLICT_LIST = 0x00000039,
             CR_INVALID_INDEX = 0x0000003A,
             CR_INVALID_STRUCTURE_SIZE = 0x0000003B,
+
+            // Custom return codes for this module, not defined in Win32 API
+            CR_UNEXPECTED_TYPE = 0x40000001,
+            CR_UNEXPECTED_LENGTH = 0x40000002,
         }
     }
 }
