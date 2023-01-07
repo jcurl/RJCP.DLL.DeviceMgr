@@ -21,8 +21,5 @@
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "GetVersionExW")]
         public static extern bool GetVersionEx([In, Out] OSVERSIONINFO osVersionInfo);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "GetVersionExW")]
-        public static extern bool GetVersionEx([In, Out] OSVERSIONINFOEX osVersionInfoEx);
     }
 }

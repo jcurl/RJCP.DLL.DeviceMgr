@@ -4,14 +4,14 @@
 
     internal static partial class Kernel32
     {
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public class OSVERSIONINFO
         {
             public int OSVersionInfoSize;
             public int MajorVersion;
             public int MinorVersion;
             public int BuildNumber;
-            public int PlatformId;
+            public WinPlatformId PlatformId;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x80)]
             public string CSDVersion;
 

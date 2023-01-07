@@ -4,7 +4,7 @@
 
     internal static partial class Kernel32
     {
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public class OSVERSIONINFOEX
         {
             public int OSVersionInfoSize;

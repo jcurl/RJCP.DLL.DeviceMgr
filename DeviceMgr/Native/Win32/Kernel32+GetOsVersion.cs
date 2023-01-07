@@ -28,7 +28,7 @@
                     return Environment.OSVersion.Version;
                 }
 
-                if (info.PlatformId != (int)WinPlatformId.WinNT) {
+                if (info.PlatformId != WinPlatformId.WinNT) {
                     throw new PlatformNotSupportedException();
                 }
 
