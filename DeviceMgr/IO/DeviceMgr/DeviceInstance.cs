@@ -43,7 +43,7 @@
 
             lock (s_CachedLock) {
                 DeviceInstance root = GetDeviceInstance(devInst, null);
-                root.PopulateChildren(false);
+                if (root != null) root.PopulateChildren(false);
                 return root;
             }
         }
@@ -109,7 +109,7 @@
                             Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
                     } else {
                         DeviceInstance node = GetDeviceInstance(devInst, null);
-                        devices.Add(node);
+                        if (node != null) devices.Add(node);
                     }
                 }
 
@@ -151,18 +151,13 @@
                 return;
             }
 
-            DeviceInstance parentDev = GetDeviceInstance(parent, null, true);
-            if (parentDev != null) {
-                if (device.Parent == null) {
-                    device.Parent = parentDev;
-                } else if (!ReferenceEquals(parentDev, device.Parent)) {
-                    Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Assigned parent differs, old={device.Parent}, new={parent}");
-                }
-            } else {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Parent unknown");
-                parentDev = GetDeviceInstance(parent, null);
-                QueryParent(parentDev);
+            DeviceInstance parentDev = GetDeviceInstance(parent, null);
+            if (device.Parent == null) {
+                device.Parent = parentDev;
+            } else if (!ReferenceEquals(parentDev, device.Parent)) {
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Assigned parent differs, old={device.Parent}, new={parent}");
             }
+            QueryParent(parentDev);
         }
 
         #region Cached Device Instances
@@ -170,11 +165,6 @@
         private static readonly Dictionary<string, DeviceInstance> s_CachedInstances = new Dictionary<string, DeviceInstance>();
 
         private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent)
-        {
-            return GetDeviceInstance(devInst, parent, false);
-        }
-
-        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent, bool onlyCache)
         {
             // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
             // overhead of locking for the usual case of iterating only once.
@@ -186,7 +176,6 @@
                 if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
                     return value;
             }
-            if (onlyCache) return null;
 
             value = new DeviceInstance(devInst, name) {
                 Parent = parent

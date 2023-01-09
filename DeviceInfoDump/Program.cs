@@ -13,7 +13,7 @@
 
             DeviceInstance.GetList();
             DeviceInstance devices = DeviceInstance.GetRoot();
-            DumpDeviceTree(devices, 0);
+            if (devices != null) DumpDeviceTree(devices, 0);
             return 0;
         }
 
