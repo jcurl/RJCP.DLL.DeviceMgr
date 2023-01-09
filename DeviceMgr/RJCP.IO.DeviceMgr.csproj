@@ -88,8 +88,7 @@
     <Compile Include="Native\Win32\CfgMgr32+DN_STATUS.cs" />
     <Compile Include="Native\Win32\CfgMgr32+RegDisposition.cs" />
     <Compile Include="Native\Win32\CfgMgr32.cs" />
-    <None Include="Native\Win32\CfgMgr32.NetCore.cs"/>
-    <None Include="Native\Win32\CfgMgr32.NetFramework.cs"/>
+    <Compile Include="Native\Win32\CfgMgr32.Managed.cs" />
     <Compile Include="Native\Win32\Kernel32+GetOsVersion.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFO.cs" />
     <Compile Include="Native\Win32\Kernel32+OSVERSIONINFOEX.cs" />
@@ -104,14 +103,6 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
     <Compile Include="IO\DeviceMgr\ReadOnlyList.cs" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard'">
-    <Compile Include="Native\Win32\CfgMgr32.NetCore.cs" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
-    <Compile Include="Native\Win32\CfgMgr32.NetFramework.cs" />
   </ItemGroup>
 
   <ItemGroup>

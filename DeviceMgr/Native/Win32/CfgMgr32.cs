@@ -37,22 +37,7 @@
         private static extern CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, out int buffer, ref int bufferLen, int flags);
 
         [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_DevNode_Registry_PropertyW")]
-        private static extern CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, [Out] char[] buffer, ref int bufferLen, int flags);
-
-        [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_DevNode_Registry_PropertyW")]
         private static unsafe extern CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, char* buffer, ref int bufferLen, int flags);
-
-        public static CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, out int value)
-        {
-            int length = 4;
-            CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, out value, ref length, 0);
-            if (ret != CONFIGRET.CR_SUCCESS) return ret;
-
-            Kernel32.REG_DATATYPE regDataType = (Kernel32.REG_DATATYPE)dataType;
-            if (regDataType != Kernel32.REG_DATATYPE.REG_DWORD) return CONFIGRET.CR_UNEXPECTED_TYPE;
-
-            return ret;
-        }
 
         [DllImport("cfgmgr32.dll", SetLastError = false, ExactSpelling = true, EntryPoint = "CM_Open_DevNode_Key")]
         public static extern CONFIGRET CM_Open_DevNode_Key(SafeDevInst devInst, Kernel32.REGSAM samDesired, int hardwareProfile, RegDisposition disposition, out SafeRegistryHandle device, int flags);
@@ -61,7 +46,7 @@
         private static extern CONFIGRET CM_Get_Device_ID_List_Size(out int length, string filter, int flags);
 
         [DllImport("cfgmgr32.dll", SetLastError = false, CharSet = CharSet.Unicode, ExactSpelling = true, EntryPoint = "CM_Get_Device_ID_ListW")]
-        private static extern CONFIGRET CM_Get_Device_ID_List(string filter, [Out] char[] buffer, int length, int flags);
+        private static unsafe extern CONFIGRET CM_Get_Device_ID_List(string filter, char* buffer, int length, int flags);
 
         [DllImport("cfgmgr32.dll", SetLastError = false, ExactSpelling = true, EntryPoint = "CM_Get_Parent")]
         public static extern CONFIGRET CM_Get_Parent(out SafeDevInst parentDevInst, SafeDevInst devInst, int flags);
