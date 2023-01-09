@@ -108,7 +108,7 @@
                         if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
                             Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
                     } else {
-                        DeviceInstance node = GetDeviceInstance(devInst, null);
+                        DeviceInstance node = GetDeviceInstance(devInst, null, instance);
                         if (node != null) devices.Add(node);
                     }
                 }
@@ -147,7 +147,7 @@
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Parent(out SafeDevInst parent, device.m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
-                    Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{device}: Couldn't get parent, return {ret}");
+                    Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{device.DebugName}: Couldn't get parent, return {ret}");
                 return;
             }
 
@@ -155,24 +155,24 @@
             if (device.Parent == null) {
                 device.Parent = parentDev;
             } else if (!ReferenceEquals(parentDev, device.Parent)) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device}: Assigned parent differs, old={device.Parent}, new={parent}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device.DebugName}: Assigned parent differs, old={device.Parent.DebugName}, new={parentDev.DebugName}");
             }
             QueryParent(parentDev);
         }
 
         #region Cached Device Instances
         private static readonly object s_CachedLock = new object();
-        private static readonly Dictionary<string, DeviceInstance> s_CachedInstances = new Dictionary<string, DeviceInstance>();
+        private static readonly Dictionary<IntPtr, DeviceInstance> s_CachedInstances = new Dictionary<IntPtr, DeviceInstance>();
 
-        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent)
+        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent, string name = null)
         {
             // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
             // overhead of locking for the usual case of iterating only once.
+            
+            // This isn't actually dangerous, as the handles are global and don't change.
+            IntPtr handle = devInst.DangerousGetHandle();
 
-            string name = GetDeviceId(devInst);
-            if (name == null) return null;
-
-            if (s_CachedInstances.TryGetValue(name, out DeviceInstance value)) {
+            if (s_CachedInstances.TryGetValue(handle, out DeviceInstance value)) {
                 if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
                     return value;
             }
@@ -180,7 +180,7 @@
             value = new DeviceInstance(devInst, name) {
                 Parent = parent
             };
-            s_CachedInstances[name] = value;
+            s_CachedInstances[handle] = value;
             return value;
         }
         #endregion
@@ -275,7 +275,7 @@
                 return;
             }
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get child node, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get child node, return {ret}");
                 m_Children = children;
                 m_IsPopulated = true;
                 return;
@@ -293,7 +293,7 @@
                     break;
                 default:
                     if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
-                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{m_Name}: Couldn't get sibling node from {node.m_Name}, return {ret}");
+                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get sibling node from {node.DebugName}, return {ret}");
                     finished = true;
                     break;
                 }
@@ -613,13 +613,13 @@
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_REGISTRY_KEY) {
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
-                        $"{m_Name}: Couldn't get device key, return {ret}");
+                        $"{DebugName}: Couldn't get device key, return {ret}");
                 }
                 return null;
             }
             if (key.IsInvalid || key.IsClosed) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error,
-                    $"{m_Name}: Couldn't get device key, registry is invalid or closed");
+                    $"{DebugName}: Couldn't get device key, registry is invalid or closed");
                 return null;
             }
 
@@ -680,6 +680,14 @@
         public override string ToString()
         {
             return m_Name;
+        }
+
+        private string DebugName
+        {
+            get
+            {
+                return m_Name ?? $"Handle {m_DevInst.DangerousGetHandle():x}";
+            }
         }
 
         // There are no objects to dispose (at this time). The SafeDevInst object can be disposed of, but it doesn't do

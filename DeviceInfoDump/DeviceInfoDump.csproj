@@ -15,7 +15,7 @@
     <RootNamespace>RJCP.DeviceInfoDump</RootNamespace>
 
     <Authors>Jason Curl</Authors>
-    <Copyright>(C) 202, Jason Curl</Copyright>
+    <Copyright>(C) 2022-2023, Jason Curl</Copyright>
     <Company></Company>
 
     <Description>Dump Device Information to the console.</Description>
