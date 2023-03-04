@@ -6,8 +6,8 @@
     using System.Text;
     using Microsoft.Win32;
     using Microsoft.Win32.SafeHandles;
-    using Native;
     using Native.Win32;
+    using RJCP.Core.Environment;
 
 #if NETSTANDARD
     using System.Buffers;
@@ -168,7 +168,7 @@
         {
             // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
             // overhead of locking for the usual case of iterating only once.
-            
+
             // This isn't actually dangerous, as the handles are global and don't change.
             IntPtr handle = devInst.DangerousGetHandle();
 
