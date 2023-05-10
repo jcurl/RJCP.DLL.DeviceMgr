@@ -15,7 +15,7 @@
             DeviceInstance devices = DeviceInstance.GetRoot();
             devices.Refresh();
             Assert.That(devices, Is.Not.Null);
-            Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            Assert.That(devices.Children, Is.Not.Empty);
             CheckDeviceTree(devices);
             CheckDevicesPresent(devices);
         }
@@ -65,7 +65,7 @@
             DeviceInstance devices = DeviceInstance.GetRoot();
             devices.Refresh();
             Assert.That(devices, Is.Not.Null);
-            Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            Assert.That(devices.Children, Is.Not.Empty);
 
             Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
             queue.Enqueue(devices);
@@ -116,7 +116,7 @@
             DeviceInstance devices = DeviceInstance.GetRoot();
             devices.Refresh();
             Assert.That(devices, Is.Not.Null);
-            Assert.That(devices.Children.Count, Is.GreaterThan(0));
+            Assert.That(devices.Children, Is.Not.Empty);
 
             DumpDeviceTree(devices, 0, true);
         }
@@ -188,7 +188,7 @@
         public void GetDeviceList()
         {
             IList<DeviceInstance> list = DeviceInstance.GetList();
-            Assert.That(list.Count, Is.Not.EqualTo(0));
+            Assert.That(list, Is.Not.Empty);
 
             foreach (DeviceInstance entry in list) {
                 CheckDeviceTree(entry);
@@ -199,7 +199,7 @@
         public void GetDeviceListNormal()
         {
             IList<DeviceInstance> list = DeviceInstance.GetList(LocateMode.Normal);
-            Assert.That(list.Count, Is.Not.EqualTo(0));
+            Assert.That(list, Is.Not.Empty);
 
             foreach (DeviceInstance entry in list) {
                 CheckDeviceTree(entry);
