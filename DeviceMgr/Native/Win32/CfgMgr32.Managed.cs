@@ -73,17 +73,17 @@
                 char[] blob = ArrayPool<char>.Shared.Rent(bloblen);
                 try {
 #endif
-                    fixed (char* blobptr = &blob[0]) {
-                        ret = CM_Get_DevNode_Registry_Property(devInst, property, out _, blobptr, ref length, 0);
-                        if (ret != CONFIGRET.CR_SUCCESS) {
-                            buffer = string.Empty;
-                            return ret;
-                        }
-
-                        // Subtract one for the NUL at the end.
-                        if (blobptr[bloblen - 1] == (char)0) bloblen--;
-                        buffer = new string(blobptr, 0, bloblen);
+                fixed (char* blobptr = &blob[0]) {
+                    ret = CM_Get_DevNode_Registry_Property(devInst, property, out _, blobptr, ref length, 0);
+                    if (ret != CONFIGRET.CR_SUCCESS) {
+                        buffer = string.Empty;
+                        return ret;
                     }
+
+                    // Subtract one for the NUL at the end.
+                    if (blobptr[bloblen - 1] == (char)0) bloblen--;
+                    buffer = new string(blobptr, 0, bloblen);
+                }
 #if !NETFRAMEWORK
                 } finally {
                     ArrayPool<char>.Shared.Return(blob);
@@ -131,14 +131,14 @@
                 char[] blob = ArrayPool<char>.Shared.Rent(bloblen);
                 try {
 #endif
-                    fixed (char* blobptr = &blob[0]) {
-                        ret = CM_Get_DevNode_Registry_Property(devInst, property, out _, blobptr, ref length, 0);
-                        if (ret != CONFIGRET.CR_SUCCESS) {
-                            buffer = EmptyString;
-                            return ret;
-                        }
-                        buffer = Marshalling.GetMultiSz(blobptr, bloblen).ToArray();
+                fixed (char* blobptr = &blob[0]) {
+                    ret = CM_Get_DevNode_Registry_Property(devInst, property, out _, blobptr, ref length, 0);
+                    if (ret != CONFIGRET.CR_SUCCESS) {
+                        buffer = EmptyString;
+                        return ret;
                     }
+                    buffer = Marshalling.GetMultiSz(blobptr, bloblen).ToArray();
+                }
 #if !NETFRAMEWORK
                 } finally {
                     ArrayPool<char>.Shared.Return(blob);
@@ -164,14 +164,14 @@
             char[] blob = ArrayPool<char>.Shared.Rent(length);
             try {
 #endif
-                fixed (char* blobptr = &blob[0]) {
-                    ret = CM_Get_Device_ID_List(filter, blobptr, length, 0);
-                    if (ret != CONFIGRET.CR_SUCCESS) {
-                        buffer = EmptyString;
-                        return ret;
-                    }
-                    buffer = Marshalling.GetMultiSz(blobptr, length).ToArray();
+            fixed (char* blobptr = &blob[0]) {
+                ret = CM_Get_Device_ID_List(filter, blobptr, length, 0);
+                if (ret != CONFIGRET.CR_SUCCESS) {
+                    buffer = EmptyString;
+                    return ret;
                 }
+                buffer = Marshalling.GetMultiSz(blobptr, length).ToArray();
+            }
 #if !NETFRAMEWORK
             } finally {
                 ArrayPool<char>.Shared.Return(blob);
