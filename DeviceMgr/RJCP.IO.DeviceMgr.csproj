@@ -19,10 +19,11 @@
     <PackageId>RJCP.IO.Device</PackageId>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/jcurl/RJCP.DLL.DeviceInfo</PackageProjectUrl>
 
     <Description>Get Windows Device Information.</Description>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
