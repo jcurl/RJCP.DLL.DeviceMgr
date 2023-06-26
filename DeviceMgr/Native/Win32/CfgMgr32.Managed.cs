@@ -2,7 +2,7 @@
 {
     using System;
 
-#if !NETFRAMEWORK
+#if NETSTANDARD
     using System.Buffers;
 #endif
 
@@ -14,7 +14,7 @@
         //
         // [CA1838] https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1838
 
-#if NETFRAMEWORK
+#if NET40
         private static readonly string[] EmptyString = new string[0];
 #else
         private static readonly string[] EmptyString = Array.Empty<string>();

@@ -93,10 +93,10 @@
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_List(null, out string[] instances);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get list size, return {ret}");
-#if NETSTANDARD
-                return Array.Empty<DeviceInstance>();
-#else
+#if NET40
                 return new DeviceInstance[0];
+#else
+                return Array.Empty<DeviceInstance>();
 #endif
             }
 
@@ -344,15 +344,15 @@
         /// <summary>
         /// Get the children device instances from this node.
         /// </summary>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<DeviceInstance> Children
-        {
-            get { return m_Children; }
-        }
-#else
+#if NET40
         public IList<DeviceInstance> Children
         {
             get { return new ReadOnlyList<DeviceInstance>(m_Children); }
+        }
+#else
+        public IReadOnlyList<DeviceInstance> Children
+        {
+            get { return m_Children; }
         }
 #endif
 
@@ -470,10 +470,10 @@
         /// Gets the hardware ids.
         /// </summary>
         /// <value>The hardware ids.</value>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<string> HardwareIds { get { return m_HardwareIds.Value; } }
-#else
+#if NET40
         public IList<string> HardwareIds { get { return m_HardwareIds.Value; } }
+#else
+        public IReadOnlyList<string> HardwareIds { get { return m_HardwareIds.Value; } }
 #endif
 
         private DeviceProperty<string[]> m_CompatibleIds;
@@ -482,10 +482,10 @@
         /// Gets the compatible ids.
         /// </summary>
         /// <value>The compatible ids.</value>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<string> CompatibleIds { get { return m_CompatibleIds.Value; } }
-#else
+#if NET40
         public IList<string> CompatibleIds { get { return m_CompatibleIds.Value; } }
+#else
+        public IReadOnlyList<string> CompatibleIds { get { return m_CompatibleIds.Value; } }
 #endif
 
         private DeviceProperty<string[]> m_UpperFilters;
@@ -494,10 +494,10 @@
         /// Gets the compatible ids.
         /// </summary>
         /// <value>The compatible ids.</value>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<string> UpperFilters { get { return m_UpperFilters.Value; } }
-#else
+#if NET40
         public IList<string> UpperFilters { get { return m_UpperFilters.Value; } }
+#else
+        public IReadOnlyList<string> UpperFilters { get { return m_UpperFilters.Value; } }
 #endif
 
         private DeviceProperty<string[]> m_LowerFilters;
@@ -506,10 +506,10 @@
         /// Gets the compatible ids.
         /// </summary>
         /// <value>The compatible ids.</value>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<string> LowerFilters { get { return m_LowerFilters.Value; } }
-#else
+#if NET40
         public IList<string> LowerFilters { get { return m_LowerFilters.Value; } }
+#else
+        public IReadOnlyList<string> LowerFilters { get { return m_LowerFilters.Value; } }
 #endif
 
         private DeviceProperty<string[]> m_LocationPaths;
@@ -518,10 +518,10 @@
         /// Gets the compatible ids (Windows 2003 and later).
         /// </summary>
         /// <value>The compatible ids.</value>
-#if NET45_OR_GREATER || NETSTANDARD
-        public IReadOnlyList<string> LocationPaths { get { return m_LocationPaths.Value; } }
-#else
+#if NET40
         public IList<string> LocationPaths { get { return m_LocationPaths.Value; } }
+#else
+        public IReadOnlyList<string> LocationPaths { get { return m_LocationPaths.Value; } }
 #endif
 
         private DeviceProperty<string> m_BaseContainerId;
@@ -543,10 +543,10 @@
         {
             using (RegistryKey driverKey = GetDeviceKey()) {
                 if (driverKey == null) {
-#if NETSTANDARD
-                    return Array.Empty<string>();
-#else
+#if NET40
                     return new string[0];
+#else
+                    return Array.Empty<string>();
 #endif
                 }
                 return driverKey.GetValueNames();
