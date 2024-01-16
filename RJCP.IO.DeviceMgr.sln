@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RJCP.IO.DeviceMgr", "DeviceMgr\RJCP.IO.DeviceMgr.csproj", "{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceInfoDump", "DeviceInfoDump\DeviceInfoDump.csproj", "{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{68540EDA-A76F-4E0D-B54B-A590B614BDB7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RJCP.IO.DeviceMgrTest", "DeviceMgrTest\RJCP.IO.DeviceMgrTest.csproj", "{CD6CDC23-F27E-4852-B735-AD5E3F28EBA5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RJCP.IO.DeviceMgrTest.Legacy", "DeviceMgrTest\RJCP.IO.DeviceMgrTest.Legacy.csproj", "{FD33AEDB-E0BD-49AB-8D9E-4E0E1C9FCC95}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceInfoDump", "DeviceInfoDump\DeviceInfoDump.csproj", "{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RJCP.IO.DeviceMgr", "DeviceMgr\RJCP.IO.DeviceMgr.csproj", "{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,22 +19,22 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CD6CDC23-F27E-4852-B735-AD5E3F28EBA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CD6CDC23-F27E-4852-B735-AD5E3F28EBA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD6CDC23-F27E-4852-B735-AD5E3F28EBA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD6CDC23-F27E-4852-B735-AD5E3F28EBA5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FD33AEDB-E0BD-49AB-8D9E-4E0E1C9FCC95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FD33AEDB-E0BD-49AB-8D9E-4E0E1C9FCC95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD33AEDB-E0BD-49AB-8D9E-4E0E1C9FCC95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD33AEDB-E0BD-49AB-8D9E-4E0E1C9FCC95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{566E1682-44EA-4E55-B4AE-1B88C9DB73C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9D834CB-3E9F-4D07-A32A-50E95D9CCF2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
