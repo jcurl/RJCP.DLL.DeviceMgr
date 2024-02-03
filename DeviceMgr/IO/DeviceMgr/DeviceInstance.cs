@@ -9,7 +9,7 @@
     using Native.Win32;
     using RJCP.Core.Environment;
 
-#if NETSTANDARD
+#if NET6_0_OR_GREATER
     using System.Buffers;
 #endif
 

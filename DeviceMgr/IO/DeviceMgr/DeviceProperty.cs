@@ -4,7 +4,7 @@
     using System.Diagnostics;
     using Native.Win32;
 
-#if NETSTANDARD
+#if NET6_0_OR_GREATER
     using System.Buffers;
 #endif
 

@@ -1,6 +1,6 @@
 ﻿namespace RJCP.DeviceInfoDump
 {
-#if NETCOREAPP
+#if NET6_0_OR_GREATER
     using System.IO;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@
 
     public static class GlobalLogger
     {
-#if NETCOREAPP
+#if NET6_0_OR_GREATER
         static GlobalLogger()
         {
             LogSource.SetLoggerFactory(GetLoggerFactory());

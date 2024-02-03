@@ -201,7 +201,7 @@
 
     internal static class DeviceStatusConvert
     {
-#if NETSTANDARD
+#if NET6_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         private static bool IsSet(CfgMgr32.DN_STATUS status, CfgMgr32.DN_STATUS bit)
