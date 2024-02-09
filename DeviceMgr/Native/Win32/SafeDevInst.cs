@@ -1,8 +1,10 @@
 ﻿namespace RJCP.Native.Win32
 {
     using System;
-    using System.Runtime.ConstrainedExecution;
     using Microsoft.Win32.SafeHandles;
+#if NETFRAMEWORK
+    using System.Runtime.ConstrainedExecution;
+#endif
 
     /// <summary>
     /// Gets a handle to the CfgMgr32 DevInst object.
@@ -31,7 +33,9 @@
         /// catastrophic failure, <see langword="false"/>. In this case, it generates a releaseHandleFailed MDA Managed
         /// Debugging Assistant.
         /// </returns>
+#if NETFRAMEWORK
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
+#endif
         protected override bool ReleaseHandle()
         {
             // Here, we must obey all rules for constrained execution regions.
@@ -54,7 +58,6 @@
             // Also, please note, that it is expected that closing this handle has no effect, as when we return a new
             // handle via DeviceInstance.Handle, we copy it, so if the user closes that copy (which has no effect), it
             // won't affect us here.
-            SetHandleAsInvalid();
             return true;
         }
     }
