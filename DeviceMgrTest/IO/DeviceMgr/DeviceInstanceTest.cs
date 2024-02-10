@@ -2,11 +2,13 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.Versioning;
     using System.Text;
     using NUnit.Framework;
 
     [TestFixture]
     [Platform("Win")]
+    [SupportedOSPlatform("windows")]
     public class DeviceInstanceTest
     {
         [Test]

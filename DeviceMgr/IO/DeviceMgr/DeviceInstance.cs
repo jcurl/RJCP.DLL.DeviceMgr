@@ -3,19 +3,17 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Runtime.Versioning;
     using System.Text;
     using Microsoft.Win32;
     using Microsoft.Win32.SafeHandles;
     using Native.Win32;
     using RJCP.Core.Environment;
 
-#if NET6_0_OR_GREATER
-    using System.Buffers;
-#endif
-
     /// <summary>
     /// A Device Instance representing a device in the system.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class DeviceInstance
     {
         private readonly SafeDevInst m_DevInst;

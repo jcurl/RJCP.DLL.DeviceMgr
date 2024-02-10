@@ -2,12 +2,10 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Runtime.Versioning;
     using Native.Win32;
 
-#if NET6_0_OR_GREATER
-    using System.Buffers;
-#endif
-
+    [SupportedOSPlatform("windows")]
     internal class DeviceProperty<T>
     {
         private readonly DeviceInstance m_DevInst;
