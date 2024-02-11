@@ -31,7 +31,7 @@
             if (!Platform.IsWinNT())
                 throw new PlatformNotSupportedException();
 
-            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device tree");
+            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, "Getting device tree");
 
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
@@ -86,7 +86,7 @@
             default: throw new ArgumentException("Invalid mode", nameof(mode));
             }
 
-            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, $"Getting device list");
+            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, "Getting device list");
 
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_List(null, out string[] instances);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {

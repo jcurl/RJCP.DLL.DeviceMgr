@@ -2,6 +2,7 @@
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.Versioning;
     using Native.Win32;
 
     /// <summary>
@@ -199,6 +200,7 @@
         QueryRemoveActive = 0x100020000
     }
 
+    [SupportedOSPlatform("windows")]
     internal static class DeviceStatusConvert
     {
 #if NET6_0_OR_GREATER

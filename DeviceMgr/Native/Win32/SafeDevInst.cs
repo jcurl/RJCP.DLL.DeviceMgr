@@ -1,6 +1,7 @@
 ﻿namespace RJCP.Native.Win32
 {
     using System;
+    using System.Runtime.Versioning;
     using Microsoft.Win32.SafeHandles;
 #if NETFRAMEWORK
     using System.Runtime.ConstrainedExecution;
@@ -9,6 +10,7 @@
     /// <summary>
     /// Gets a handle to the CfgMgr32 DevInst object.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class SafeDevInst : SafeHandleZeroOrMinusOneIsInvalid
     {
         /// <summary>

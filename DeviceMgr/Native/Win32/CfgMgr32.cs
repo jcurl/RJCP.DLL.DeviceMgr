@@ -2,11 +2,13 @@
 {
     using System;
     using System.Runtime.InteropServices;
+    using System.Runtime.Versioning;
     using System.Security;
     using System.Text;
     using Microsoft.Win32.SafeHandles;
 
     [SuppressUnmanagedCodeSecurity]
+    [SupportedOSPlatform("windows")]
     internal static partial class CfgMgr32
     {
         private const int MaxLengthStack = 128;
