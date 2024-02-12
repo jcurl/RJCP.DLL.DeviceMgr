@@ -10,7 +10,7 @@
 
         public ReadOnlyList(IList<T> list)
         {
-            if (list == null) throw new ArgumentNullException(nameof(list));
+            ThrowHelper.ThrowIfNull(list);
             m_List = list;
         }
 
