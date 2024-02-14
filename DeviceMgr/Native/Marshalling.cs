@@ -16,7 +16,7 @@
         /// </remarks>
         public static unsafe List<string> GetMultiSz(char* blob, int blobLen)
         {
-            List<string> strings = new List<string>();
+            List<string> strings = new();
             int cur = 0;
 
             while (cur < blobLen) {

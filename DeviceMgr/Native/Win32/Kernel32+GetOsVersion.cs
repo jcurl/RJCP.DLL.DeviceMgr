@@ -11,7 +11,7 @@
 
         public static Version GetOsVersion()
         {
-            if (OSVersion != null) return OSVersion;
+            if (OSVersion is not null) return OSVersion;
 
             OSVersion = InternalGetOsVersion();
             return OSVersion;
@@ -19,7 +19,7 @@
 
         private static Version InternalGetOsVersion()
         {
-            OSVERSIONINFO info = new OSVERSIONINFO();
+            OSVERSIONINFO info = new();
             try {
                 bool result = GetVersionEx(info);
                 if (!result) {
@@ -45,7 +45,7 @@
             // APIs return values, not based on the manifest of this application.
 
             int ntstatus;
-            OSVERSIONINFOEX rtlInfoEx = new OSVERSIONINFOEX();
+            OSVERSIONINFOEX rtlInfoEx = new();
             try {
                 ntstatus = NtDll.RtlGetVersion(rtlInfoEx);
             } catch (EntryPointNotFoundException) {

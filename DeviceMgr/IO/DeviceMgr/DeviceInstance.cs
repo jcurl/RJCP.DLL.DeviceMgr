@@ -41,7 +41,7 @@
 
             lock (s_CachedLock) {
                 DeviceInstance root = GetDeviceInstance(devInst, null);
-                if (root != null) root.PopulateChildren(false);
+                if (root is not null) root.PopulateChildren(false);
                 return root;
             }
         }
@@ -98,7 +98,7 @@
 #endif
             }
 
-            List<DeviceInstance> devices = new List<DeviceInstance>();
+            List<DeviceInstance> devices = new();
             lock (s_CachedLock) {
                 foreach (string instance in instances) {
                     ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, cmMode);
@@ -107,7 +107,7 @@
                             Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
                     } else {
                         DeviceInstance node = GetDeviceInstance(devInst, null, instance);
-                        if (node != null) devices.Add(node);
+                        if (node is not null) devices.Add(node);
                     }
                 }
 
@@ -119,9 +119,9 @@
 
                 // Now we rebuild the children tree
                 Dictionary<DeviceInstance, List<DeviceInstance>> childrenTree =
-                    new Dictionary<DeviceInstance, List<DeviceInstance>>();
+                    new();
                 foreach (DeviceInstance device in devices) {
-                    if (device.Parent != null) {
+                    if (device.Parent is not null) {
                         if (!childrenTree.TryGetValue(device.Parent, out List<DeviceInstance> children)) {
                             children = new List<DeviceInstance>();
                             childrenTree.Add(device.Parent, children);
@@ -150,7 +150,7 @@
             }
 
             DeviceInstance parentDev = GetDeviceInstance(parent, null);
-            if (device.Parent == null) {
+            if (device.Parent is null) {
                 device.Parent = parentDev;
             } else if (!ReferenceEquals(parentDev, device.Parent)) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device.DebugName}: Assigned parent differs, old={device.Parent.DebugName}, new={parentDev.DebugName}");
@@ -159,8 +159,8 @@
         }
 
         #region Cached Device Instances
-        private static readonly object s_CachedLock = new object();
-        private static readonly Dictionary<IntPtr, DeviceInstance> s_CachedInstances = new Dictionary<IntPtr, DeviceInstance>();
+        private static readonly object s_CachedLock = new();
+        private static readonly Dictionary<IntPtr, DeviceInstance> s_CachedInstances = new();
 
         private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent, string name = null)
         {
@@ -229,7 +229,7 @@
                 return null;
             }
 
-            StringBuilder buffer = new StringBuilder(length + 1);
+            StringBuilder buffer = new(length + 1);
             ret = CfgMgr32.CM_Get_Device_ID(devInst, buffer, length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst.DangerousGetHandle():x}: Couldn't get device identifier for length {length}, return {ret}");
@@ -262,7 +262,7 @@
             if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
                 throw new ObjectDisposedException(nameof(DeviceInstance));
 
-            List<DeviceInstance> children = new List<DeviceInstance>();
+            List<DeviceInstance> children = new();
 
             CfgMgr32.CONFIGRET ret;
 
@@ -337,7 +337,7 @@
         public DeviceInstance Parent { get; private set; }
 
         private bool m_IsPopulated;
-        private List<DeviceInstance> m_Children = new List<DeviceInstance>();
+        private List<DeviceInstance> m_Children = new();
 
         /// <summary>
         /// Get the children device instances from this node.
@@ -540,7 +540,7 @@
         public string[] GetDeviceProperties()
         {
             using (RegistryKey driverKey = GetDeviceKey()) {
-                if (driverKey == null) {
+                if (driverKey is null) {
 #if NET40
                     return new string[0];
 #else
@@ -570,7 +570,7 @@
         public object GetDeviceProperty(string keyName, object defValue)
         {
             using (RegistryKey driverKey = GetDeviceKey()) {
-                return driverKey == null ?
+                return driverKey is null ?
                     defValue :
                     driverKey.GetValue(keyName);
             }
@@ -597,7 +597,7 @@
         public T GetDeviceProperty<T>(string keyName, T defValue)
         {
             using (RegistryKey driverKey = GetDeviceKey()) {
-                return driverKey == null ?
+                return driverKey is null ?
                     defValue :
                     (T)driverKey.GetValue(keyName);
             }

@@ -36,7 +36,7 @@
         {
             int length = 0;
             CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, IntPtr.Zero, ref length, 0);
-            if (ret != CONFIGRET.CR_SUCCESS && ret != CONFIGRET.CR_BUFFER_SMALL) {
+            if (ret is not CONFIGRET.CR_SUCCESS and not CONFIGRET.CR_BUFFER_SMALL) {
                 buffer = string.Empty;
                 return ret;
             }
@@ -97,7 +97,7 @@
         {
             int length = 0;
             CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, IntPtr.Zero, ref length, 0);
-            if (ret != CONFIGRET.CR_SUCCESS && ret != CONFIGRET.CR_BUFFER_SMALL) {
+            if (ret is not CONFIGRET.CR_SUCCESS and not CONFIGRET.CR_BUFFER_SMALL) {
                 buffer = EmptyString;
                 return ret;
             }

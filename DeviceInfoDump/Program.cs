@@ -13,7 +13,7 @@
 
             DeviceInstance.GetList();
             DeviceInstance devices = DeviceInstance.GetRoot();
-            if (devices != null) DumpDeviceTree(devices, 0);
+            if (devices is not null) DumpDeviceTree(devices, 0);
             return 0;
         }
 
@@ -66,9 +66,9 @@
 
         private static string List(IEnumerable<string> list)
         {
-            if (list == null) { return string.Empty; }
+            if (list is null) { return string.Empty; }
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             bool first = true;
             foreach (string entry in list) {
                 if (!first) sb.Append(", ");

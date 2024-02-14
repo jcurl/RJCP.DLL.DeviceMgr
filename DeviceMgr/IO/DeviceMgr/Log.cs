@@ -6,6 +6,6 @@
     {
         private const string CfgMgrIdentifier = "RJCP.IO.DeviceMgr";
 
-        public static readonly LogSource CfgMgr = new LogSource(CfgMgrIdentifier);
+        public static readonly LogSource CfgMgr = new(CfgMgrIdentifier);
     }
 }

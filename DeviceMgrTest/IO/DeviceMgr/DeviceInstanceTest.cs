@@ -25,7 +25,7 @@
         private static void CheckDeviceTree(DeviceInstance devices)
         {
             // Check the parent / child relationship
-            Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+            Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance parent = queue.Dequeue();
@@ -39,7 +39,7 @@
         private static void CheckDevicesPresent(DeviceInstance devices)
         {
             // Check the parent / child relationship
-            Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+            Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance node = queue.Dequeue();
@@ -61,15 +61,15 @@
         [Test]
         public void GetDeviceTreeRefresh()
         {
-            HashSet<string> foundBefore = new HashSet<string>();
-            HashSet<string> foundAfter = new HashSet<string>();
+            HashSet<string> foundBefore = new();
+            HashSet<string> foundAfter = new();
 
             DeviceInstance devices = DeviceInstance.GetRoot();
             devices.Refresh();
             Assert.That(devices, Is.Not.Null);
             Assert.That(devices.Children, Is.Not.Empty);
 
-            Queue<DeviceInstance> queue = new Queue<DeviceInstance>();
+            Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance node = queue.Dequeue();
@@ -157,7 +157,7 @@
                 PrintIndent(depth); Console.WriteLine($"  - Keys: {List(device.GetDeviceProperties())}");
 
                 string port = device.GetDeviceProperty<string>("PortName");
-                if (port != null) {
+                if (port is not null) {
                     PrintIndent(depth); Console.WriteLine($"  - PortName: {port}");
                 }
             }
@@ -174,9 +174,9 @@
 
         private static string List(IEnumerable<string> list)
         {
-            if (list == null) { return string.Empty; }
+            if (list is null) { return string.Empty; }
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             bool first = true;
             foreach (string entry in list) {
                 if (!first) sb.Append(", ");
