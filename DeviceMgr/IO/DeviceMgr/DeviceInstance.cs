@@ -255,12 +255,10 @@
 
         private void PopulateChildren(bool overwrite)
         {
+            ThrowHelper.ThrowIfDisposed(m_DevInst.IsInvalid || m_DevInst.IsClosed, this);
             if (!overwrite) {
                 if (m_IsPopulated || m_Children.Count > 0) return;
             }
-
-            if (m_DevInst.IsInvalid || m_DevInst.IsClosed)
-                throw new ObjectDisposedException(nameof(DeviceInstance));
 
             List<DeviceInstance> children = new();
 

@@ -42,6 +42,7 @@ Quality:
 - Update from .NET 4.5 to .NET 4.6.2 (DOTNET-827)
 - Update from .NET Standard 2.1 to .NET 6.0 (DOTNET-936, DOTNET-937, DOTNET-938,
   DOTNET-942, DOTNET-945)
+- Update to .NET 8.0 (DOTNET-982, DOTNET-983, DOTNET-989, DOTNET-990)
 
 ### Version 0.8.0
 
