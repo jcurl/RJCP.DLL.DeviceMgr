@@ -183,8 +183,6 @@
         }
         #endregion
 
-        private DeviceInstance(SafeDevInst handle) : this(handle, null) { }
-
         private DeviceInstance(SafeDevInst handle, string name)
         {
             if (handle.IsInvalid || handle.IsClosed)
