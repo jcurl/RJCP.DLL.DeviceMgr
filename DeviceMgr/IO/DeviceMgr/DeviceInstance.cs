@@ -47,7 +47,7 @@
         }
 
         /// <summary>
-        /// Gets the list of all devices in the system, even if they're not physicall present.
+        /// Gets the list of all devices in the system, even if they're not physically present.
         /// </summary>
         /// <returns>A list of all devices in the system.</returns>
         /// <exception cref="PlatformNotSupportedException">This is only supported on Windows NT platforms.</exception>
@@ -150,11 +150,10 @@
             }
 
             DeviceInstance parentDev = GetDeviceInstance(parent, null);
-            if (device.Parent is null) {
-                device.Parent = parentDev;
-            } else if (!ReferenceEquals(parentDev, device.Parent)) {
+            if (device.Parent is not null && !ReferenceEquals(parentDev, device.Parent)) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device.DebugName}: Assigned parent differs, old={device.Parent.DebugName}, new={parentDev.DebugName}");
             }
+            device.Parent = parentDev;
             QueryParent(parentDev);
         }
 
@@ -219,6 +218,28 @@
             m_BaseContainerId = new DeviceProperty<string>(this, CfgMgr32.CM_DRP.BASE_CONTAINERID);
         }
 
+        private void ResetProperties()
+        {
+            // Resetting avoids having to create a new object, but will cause the object to be refreshed when queried.
+            m_DevDesc.Reset();
+            m_Service.Reset();
+            m_Class.Reset();
+            m_ClassGuid.Reset();
+            m_Driver.Reset();
+            m_Manufacturer.Reset();
+            m_FriendlyName.Reset();
+            m_Location.Reset();
+            m_PhysicalDevice.Reset();
+            m_ConfigFlags.Reset();
+            m_Capabilities.Reset();
+            m_HardwareIds.Reset();
+            m_CompatibleIds.Reset();
+            m_UpperFilters.Reset();
+            m_LowerFilters.Reset();
+            m_LocationPaths.Reset();
+            m_BaseContainerId.Reset();
+        }
+
         private static string GetDeviceId(SafeDevInst devInst)
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_Size(out int length, devInst, 0);
@@ -258,24 +279,21 @@
                 if (m_IsPopulated || m_Children.Count > 0) return;
             }
 
-            List<DeviceInstance> children = new();
-
+            m_Children.Clear();
             CfgMgr32.CONFIGRET ret;
-
             ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
             if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) {
-                m_Children = children;
                 m_IsPopulated = true;
                 return;
             }
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get child node, return {ret}");
-                m_Children = children;
                 m_IsPopulated = true;
                 return;
             }
             DeviceInstance node = GetDeviceInstance(child, this);
-            children.Add(node);
+            node.Parent = this;
+            m_Children.Add(node);
 
             bool finished = false;
             while (!finished) {
@@ -283,7 +301,8 @@
                 switch (ret) {
                 case CfgMgr32.CONFIGRET.CR_SUCCESS:
                     node = GetDeviceInstance(sibling, this);
-                    children.Add(node);
+                    node.Parent = this;
+                    m_Children.Add(node);
                     break;
                 default:
                     if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
@@ -294,13 +313,10 @@
             }
 
             // Now recurse into the new nodes and populate them also.
-            foreach (DeviceInstance dev in children) {
-                dev.PopulateChildren(false);
+            foreach (DeviceInstance dev in m_Children) {
+                dev.PopulateChildren(true);
             }
 
-            // Only make the tree visible once it is complete. This makes assignment atomic at the end (assignment of
-            // reference types is atomic).
-            m_Children = children;
             m_IsPopulated = true;
         }
 
@@ -627,6 +643,7 @@
         /// This method should be used if it is believed that this node, and the children might have changed. Refreshing
         /// from this tree will remove nodes that are not currently connected / existing, thus removing entries that may
         /// have been populated by <see cref="GetList()"/>.
+        /// <para></para>
         /// </remarks>
         public void Refresh()
         {
@@ -640,12 +657,8 @@
                 // entry and just uses that. Its children were updated in a previous call due to the DepthFirstSearch
                 // algorithm of updating the leaves first.
                 DepthFirstSearch(this, (devInst) => {
-                    // This might fail, when a device is removed. It can be ignored.
                     devInst.GetStatus();
-
-                    // If the user is already querying the properties, it will still work, because they'll use the old
-                    // object before reassignment.
-                    devInst.SetProperties();
+                    devInst.ResetProperties();
 
                     // Populating the children from the bottom up refreshes only the children node at a time, because
                     // their children have already been populated. The variable to overwrite is only for the current

@@ -63,12 +63,12 @@
 
         public static bool IsWin8OrNewer(Version osVersion)
         {
-            return osVersion >= new Version(6, 2);
+            return osVersion.Major >= 6 || osVersion.Major == 6 && osVersion.Minor >= 2;
         }
 
         public static bool IsWin10OrNewer(Version osVersion)
         {
-            return osVersion >= new Version(10, 0);
+            return osVersion.Major >= 10;
         }
     }
 }

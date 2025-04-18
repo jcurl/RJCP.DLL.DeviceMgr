@@ -91,5 +91,10 @@
 
             return true;
         }
+
+        public void Reset()
+        {
+            m_Retrieved = false;
+        }
     }
 }

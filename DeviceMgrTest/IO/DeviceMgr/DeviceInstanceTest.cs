@@ -241,5 +241,36 @@
             DumpDeviceTree(root, 0, false);
             CheckDevicesPresent(root);
         }
+
+        [Test]
+        [Explicit("Performance Test")]
+        [Category("ManualTest")]
+        public void RefreshFrequent()
+        {
+            // Useful for testing garbage collection with profilers.
+
+            for (int count = 0; count < 10000; count++) {
+                DeviceInstance.GetRoot().Refresh();
+            }
+        }
+
+        [Test]
+        [Explicit("Performance Test")]
+        [Category("ManualTest")]
+        public void RefreshFrequent2()
+        {
+            // Useful for testing garbage collection with profilers.
+
+            List<DeviceInstance> instances = new();
+            foreach (var device in DeviceInstance.GetList()) {
+                instances.Add(device);
+            }
+
+            for (int count = 0; count < 10000; count++) {
+                foreach (var instance in instances) {
+                    instance.Refresh();
+                }
+            }
+        }
     }
 }
