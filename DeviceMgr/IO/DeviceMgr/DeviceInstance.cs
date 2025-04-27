@@ -314,7 +314,9 @@
 
             // Now recurse into the new nodes and populate them also.
             foreach (DeviceInstance dev in m_Children) {
-                dev.PopulateChildren(true);
+                // Must be false, as when doing a Refresh() we don't want to update all elements, only those that
+                // haven't been queried for children.
+                dev.PopulateChildren(false);
             }
 
             m_IsPopulated = true;

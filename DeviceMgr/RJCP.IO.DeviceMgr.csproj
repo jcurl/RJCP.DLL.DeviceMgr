@@ -20,7 +20,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/jcurl/RJCP.DLL.DeviceInfo</PackageProjectUrl>
     <Description>Get Windows Device Information.</Description>
-    <Version>0.8.2</Version>
+    <Version>0.8.3</Version>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
