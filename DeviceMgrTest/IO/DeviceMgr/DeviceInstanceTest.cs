@@ -19,36 +19,50 @@
             Assert.That(devices, Is.Not.Null);
             Assert.That(devices.Children, Is.Not.Empty);
             CheckDeviceTree(devices);
+
+            // After refreshing, there shouldn't be any phantom devices.
             CheckDevicesPresent(devices);
         }
 
-        private static void CheckDeviceTree(DeviceInstance devices)
+        private static int CheckDeviceTree(DeviceInstance devices)
         {
+            if (devices is null) return 0;
+
+            int nodes = 1;
+
             // Check the parent / child relationship
             Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance parent = queue.Dequeue();
                 foreach (DeviceInstance child in parent.Children) {
-                    Assert.That(ReferenceEquals(parent, child.Parent));
+                    nodes++;
+                    Assert.That(parent, Is.EqualTo(child.Parent));
                     if (child.Children.Count > 0) queue.Enqueue(child);
                 }
             }
+
+            return nodes;
         }
 
         private static void CheckDevicesPresent(DeviceInstance devices)
         {
-            // Check the parent / child relationship
+            int devicesMissing = 0;
+
+            // Check that every element in the tree is actually present.
             Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance node = queue.Dequeue();
-                Assert.That(node.ProblemCode, Is.Not.EqualTo(DeviceProblem.DeviceNotThere),
-                    $"{node} in list - {node.ProblemCode}");
+                if (node.ProblemCode == DeviceProblem.DeviceNotThere) {
+                    Console.WriteLine($"{node} in list - {node.ProblemCode}");
+                    devicesMissing++;
+                }
                 foreach (DeviceInstance child in node.Children) {
                     queue.Enqueue(child);
                 }
             }
+            Assert.That(devicesMissing, Is.Zero);
         }
 
         [Test]
@@ -120,7 +134,12 @@
             Assert.That(devices, Is.Not.Null);
             Assert.That(devices.Children, Is.Not.Empty);
 
-            DumpDeviceTree(devices, 0, true);
+            DumpDeviceTree(devices, true);
+        }
+
+        private static void DumpDeviceTree(DeviceInstance device, bool extended)
+        {
+            DumpDeviceTree(device, 0, extended);
         }
 
         private static void DumpDeviceTree(DeviceInstance device, int depth, bool extended)
@@ -129,6 +148,11 @@
             foreach (DeviceInstance child in device.Children) {
                 DumpDeviceTree(child, depth + 1, extended);
             }
+        }
+
+        private static void DumpDeviceNode(DeviceInstance device, bool extended)
+        {
+            DumpDeviceNode(device, 0, extended);
         }
 
         private static void DumpDeviceNode(DeviceInstance device, int depth, bool extended)
@@ -186,36 +210,16 @@
             return sb.ToString();
         }
 
-        [Test]
-        public void GetDeviceList()
+        [TestCase(LocateMode.Phantom)]
+        [TestCase(LocateMode.Normal)]
+        public void GetDeviceList(LocateMode mode)
         {
-            IList<DeviceInstance> list = DeviceInstance.GetList();
+            IList<DeviceInstance> list = DeviceInstance.GetList(mode);
             Assert.That(list, Is.Not.Empty);
 
             foreach (DeviceInstance entry in list) {
-                CheckDeviceTree(entry);
-            }
-        }
-
-        [Test]
-        public void GetDeviceListNormal()
-        {
-            IList<DeviceInstance> list = DeviceInstance.GetList(LocateMode.Normal);
-            Assert.That(list, Is.Not.Empty);
-
-            foreach (DeviceInstance entry in list) {
-                CheckDeviceTree(entry);
-                DumpDeviceNode(entry, 0, false);
-            }
-        }
-
-        [Test]
-        public void DumpDeviceList()
-        {
-            IList<DeviceInstance> list = DeviceInstance.GetList();
-            foreach (DeviceInstance dev in list) {
-                Assert.That(dev, Is.Not.Null);
-                DumpDeviceNode(dev, 0, false);
+                Assert.That(CheckDeviceTree(entry), Is.Not.Zero);
+                DumpDeviceNode(entry, false);
             }
         }
 
@@ -229,16 +233,17 @@
             // that are actually connected.
             DeviceInstance.GetList();
             DeviceInstance root = DeviceInstance.GetRoot();
-            DumpDeviceTree(root, 0, false);
+            DumpDeviceTree(root, false);
         }
 
-        [Test]
-        public void GetDeviceListRefreshNoMissing()
+        [TestCase(LocateMode.Phantom)]
+        [TestCase(LocateMode.Normal)]
+        public void GetDeviceListRefreshNoMissing(LocateMode mode)
         {
-            DeviceInstance.GetList();
+            DeviceInstance.GetList(mode);
             DeviceInstance root = DeviceInstance.GetRoot();
             root.Refresh();
-            DumpDeviceTree(root, 0, false);
+            DumpDeviceTree(root, false);
             CheckDevicesPresent(root);
         }
 
@@ -270,6 +275,30 @@
                 foreach (var instance in instances) {
                     instance.Refresh();
                 }
+            }
+        }
+
+        [TestCase(LocateMode.Phantom)]
+        [TestCase(LocateMode.Normal)]
+        public void RefreshCount(LocateMode mode)
+        {
+            int list = DeviceInstance.GetList(mode).Count;
+            int treecount = CheckDeviceTree(DeviceInstance.GetRoot());
+            DeviceInstance.GetRoot().Refresh();
+            int treecount_refreshed = CheckDeviceTree(DeviceInstance.GetRoot());
+
+            Console.WriteLine("Found {0} devices", list);
+            Assert.That(treecount, Is.EqualTo(list), $"Complete list {list} isn't the same as counting the tree {treecount}");
+            switch (mode) {
+            case LocateMode.Normal:
+                Assert.That(treecount_refreshed, Is.EqualTo(list), $"Complete list {list} isn't the same as counting the tree {treecount_refreshed} after refresh");
+                break;
+            case LocateMode.Phantom:
+                Assert.That(treecount_refreshed, Is.LessThanOrEqualTo(list), $"Complete list {list} smaller than counting the tree {treecount_refreshed} after refresh");
+                break;
+            default:
+                Assert.Fail("Unknown case - test case error");
+                break;
             }
         }
     }

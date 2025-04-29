@@ -14,7 +14,7 @@
     /// A Device Instance representing a device in the system.
     /// </summary>
     [SupportedOSPlatform("windows")]
-    public class DeviceInstance
+    public sealed class DeviceInstance : IEquatable<DeviceInstance>
     {
         private readonly SafeDevInst m_DevInst;
 
@@ -100,6 +100,9 @@
 
             List<DeviceInstance> devices = new();
             lock (s_CachedLock) {
+                // On getting the complete list, we clear the cache so we can rebuild the entire tree. Not doing so
+                // might return a wrong structure.
+                s_CachedInstances.Clear();
                 foreach (string instance in instances) {
                     ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, cmMode);
                     if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
@@ -114,7 +117,7 @@
                 // Now check for the parents
                 foreach (DeviceInstance device in devices) {
                     // Check if we have the parent. If we do, we add it.
-                    QueryParent(device);
+                    PopulateParent(device);
                 }
 
                 // Now we rebuild the children tree
@@ -140,21 +143,22 @@
             return devices;
         }
 
-        private static void QueryParent(DeviceInstance device)
+        private static DeviceInstance QueryParent(DeviceInstance device)
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Parent(out SafeDevInst parent, device.m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
-                    Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{device.DebugName}: Couldn't get parent, return {ret}");
-                return;
+                return null;
             }
 
             DeviceInstance parentDev = GetDeviceInstance(parent, null);
-            if (device.Parent is not null && !ReferenceEquals(parentDev, device.Parent)) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{device.DebugName}: Assigned parent differs, old={device.Parent.DebugName}, new={parentDev.DebugName}");
-            }
             device.Parent = parentDev;
-            QueryParent(parentDev);
+            return parentDev;
+        }
+
+        private static void PopulateParent(DeviceInstance device)
+        {
+            DeviceInstance parentDev = QueryParent(device);
+            if (parentDev is not null) PopulateParent(parentDev);
         }
 
         #region Cached Device Instances
@@ -272,6 +276,10 @@
             ProblemCode = (DeviceProblem)problem;
         }
 
+        // Used to know when populating children if this instance was found. It is always false, except while in
+        // `PopulateChildren`.
+        private bool m_IsScanned = false;
+
         private void PopulateChildren(bool overwrite)
         {
             ThrowHelper.ThrowIfDisposed(m_DevInst.IsInvalid || m_DevInst.IsClosed, this);
@@ -279,38 +287,7 @@
                 if (m_IsPopulated || m_Children.Count > 0) return;
             }
 
-            m_Children.Clear();
-            CfgMgr32.CONFIGRET ret;
-            ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
-            if (ret == CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST) {
-                m_IsPopulated = true;
-                return;
-            }
-            if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get child node, return {ret}");
-                m_IsPopulated = true;
-                return;
-            }
-            DeviceInstance node = GetDeviceInstance(child, this);
-            node.Parent = this;
-            m_Children.Add(node);
-
-            bool finished = false;
-            while (!finished) {
-                ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
-                switch (ret) {
-                case CfgMgr32.CONFIGRET.CR_SUCCESS:
-                    node = GetDeviceInstance(sibling, this);
-                    node.Parent = this;
-                    m_Children.Add(node);
-                    break;
-                default:
-                    if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
-                        Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get sibling node from {node.DebugName}, return {ret}");
-                    finished = true;
-                    break;
-                }
-            }
+            PopulateChildren();
 
             // Now recurse into the new nodes and populate them also.
             foreach (DeviceInstance dev in m_Children) {
@@ -320,6 +297,71 @@
             }
 
             m_IsPopulated = true;
+        }
+
+        private void PopulateChildren()
+        {
+            foreach (DeviceInstance dev in m_Children) {
+                dev.m_IsScanned = true;
+            }
+
+            CfgMgr32.CONFIGRET ret;
+            ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
+            switch (ret) {
+            case CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST:
+                break;
+            case CfgMgr32.CONFIGRET.CR_SUCCESS:
+                DeviceInstance node = GetDeviceInstance(child, this);
+                AddChildOrMarkFound(node);
+
+                bool finished = false;
+                while (!finished) {
+                    ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
+                    switch (ret) {
+                    case CfgMgr32.CONFIGRET.CR_SUCCESS:
+                        node = GetDeviceInstance(sibling, this);
+                        AddChildOrMarkFound(node);
+                        break;
+                    default:
+                        if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST)
+                            Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get sibling node from {node.DebugName}, return {ret}");
+                        finished = true;
+                        break;
+                    }
+                }
+                break;
+            default:
+                Log.CfgMgr.TraceEvent(TraceEventType.Warning, $"{DebugName}: Couldn't get child node, return {ret}");
+                break;
+            }
+
+            // The items remaining that aren't scanned have been removed, or were phantom. We don't scan these again
+            // (they'll show up as devices not present), because the functions `CM_Get_Child` and `CM_Get_Sibling` only
+            // show those devices that are present. If for some reason the tree changes, we won't detect it and we'd
+            // have to do a GetList() anyway to get the complete structure (then parsing the parents, and building the
+            // tree based on that, rather than have the parent and parse the partial set of children).
+#if false
+            foreach (DeviceInstance dev in m_Children.Where(dev => dev.m_IsScanned)) {
+                if (Equals(QueryParent(dev))) {
+                    dev.m_IsScanned = false;
+                }
+            }
+#endif
+
+            // Remove those nodes that were no longer present
+            m_Children.RemoveAll(dev => dev.m_IsScanned);
+        }
+
+        private void AddChildOrMarkFound(DeviceInstance dev)
+        {
+            int n = m_Children.IndexOf(dev);
+            if (n == -1) {
+                m_Children.Add(dev);
+                dev.Parent = this;
+                dev.m_IsScanned = false;
+            } else {
+                m_Children[n].m_IsScanned = false;
+            }
         }
 
         /// <summary>
@@ -678,6 +720,47 @@
                 DepthFirstSearch(child, action);
             }
             action(devInst);
+        }
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// Returns <see langword="true"/> if the current object is equal to the <paramref name="other"/> parameter;
+        /// otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool Equals(DeviceInstance other)
+        {
+            return (other is not null && other.m_DevInst.DangerousGetHandle() == m_DevInst.DangerousGetHandle());
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object"/> is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>
+        /// <see langword="true"/> if the specified <see cref="System.Object"/> is equal to this instance; otherwise,
+        /// <see langword="false"/>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            return obj is DeviceInstance dev && Equals(dev);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            unchecked {
+                ulong handle = (ulong)m_DevInst.DangerousGetHandle().ToInt64();
+                handle ^= (handle >> 32);
+                return (int)((11400714819323198485 * handle) >> 32);
+            }
         }
 
         private readonly string m_Name;
