@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Runtime.Versioning;
     using System.Text;
+    using System.Windows.Forms;
     using NUnit.Framework;
 
     [TestFixture]
@@ -72,54 +73,60 @@
             GetDeviceTree();
         }
 
-        [Test]
-        public void GetDeviceTreeRefresh()
+        private static HashSet<string> GetDevices()
         {
-            HashSet<string> foundBefore = new();
-            HashSet<string> foundAfter = new();
+            return GetDevices(null);
+        }
 
-            DeviceInstance devices = DeviceInstance.GetRoot();
+        private static HashSet<string> GetDevices(DeviceInstance root)
+        {
+            DeviceInstance devices = root ?? DeviceInstance.GetRoot();
             devices.Refresh();
             Assert.That(devices, Is.Not.Null);
             Assert.That(devices.Children, Is.Not.Empty);
+
+            HashSet<string> deviceList = new();
 
             Queue<DeviceInstance> queue = new();
             queue.Enqueue(devices);
             while (queue.Count > 0) {
                 DeviceInstance node = queue.Dequeue();
-                foundBefore.Add(node.ToString());
+                deviceList.Add(node.ToString());
                 foreach (DeviceInstance child in node.Children) {
                     queue.Enqueue(child);
                 }
             }
 
-            queue.Clear();
-            devices.Refresh();
-            queue.Enqueue(devices);
-            while (queue.Count > 0) {
-                DeviceInstance node = queue.Dequeue();
-                foundAfter.Add(node.ToString());
-                foreach (DeviceInstance child in node.Children) {
-                    queue.Enqueue(child);
-                }
-            }
+            return deviceList;
+        }
 
-            // Compare before and after. There should only be a difference if a device was added or removed.
-            int additions = 0;
-            int removals = 0;
-            foreach (string node in foundBefore) {
-                if (!foundAfter.Contains(node)) {
-                    removals++;
+        private static void Compare(HashSet<string> before, HashSet<string> after, out int removed, out int inserted)
+        {
+            removed = 0;
+            inserted = 0;
+
+            foreach (string node in before) {
+                if (!after.Contains(node)) {
+                    removed++;
                     Console.WriteLine($"Node Removed: {node}");
                 }
             }
-            foreach (string node in foundAfter) {
-                if (!foundBefore.Contains(node)) {
-                    additions++;
-                    Console.WriteLine($"Node Added: {node}");
+            foreach (string node in after) {
+                if (!before.Contains(node)) {
+                    inserted++;
+                    Console.WriteLine($"Node Inserted: {node}");
                 }
             }
+        }
 
+        [Test]
+        public void GetDeviceTreeRefresh()
+        {
+            HashSet<string> foundBefore = GetDevices();
+            HashSet<string> foundAfter = GetDevices();
+            Compare(foundBefore, foundAfter, out int removals, out int additions);
+
+            // Compare before and after. There should only be a difference if a device was added or removed.
             Assert.Multiple(() => {
                 Assert.That(removals, Is.EqualTo(0));
                 Assert.That(additions, Is.EqualTo(0));
@@ -300,6 +307,40 @@
                 Assert.Fail("Unknown case - test case error");
                 break;
             }
+        }
+
+        [Test]
+        [Explicit("Interactive Manual Test")]
+        [Category("ManualTest")]
+        public void RefreshDeviceChanged()
+        {
+            DeviceInstance.GetList(LocateMode.Normal);
+            HashSet<string> orig_set = GetDevices();
+            DeviceInstance root = DeviceInstance.GetRoot();
+            int treecount = CheckDeviceTree(root);
+            DumpDeviceTree(root, false);
+
+            // To test, run manually. Then it pauses for 30 seconds. During this time, insert or remove a device (e.g. a
+            // USB device) and check that the results show the count as increased or decreased depending on if it was
+            // added or removed.
+            Console.WriteLine("Please remove a device (e.g. a USB device)");
+            MessageBox.Show("Please remove a device (e.g. a USB device)\nThen press OK.", nameof(RefreshDeviceChanged));
+            HashSet<string> remove_set = GetDevices();
+            int treecount_removed = CheckDeviceTree(DeviceInstance.GetRoot());
+            DumpDeviceTree(DeviceInstance.GetRoot(), false);
+            Compare(orig_set, remove_set, out int _, out int _);
+
+            Console.WriteLine("Please insert a device (e.g. a USB device)");
+            MessageBox.Show("Please insert a device (e.g. a USB device)\nThen press OK.", nameof(RefreshDeviceChanged));
+            HashSet<string> insert_set = GetDevices();
+            int treecount_inserted = CheckDeviceTree(DeviceInstance.GetRoot());
+            DumpDeviceTree(DeviceInstance.GetRoot(), false);
+            Compare(remove_set, insert_set, out int _, out int _);
+
+            Console.WriteLine("before {0} after remove {1} then after insert {2}", treecount, treecount_removed, treecount_inserted);
+
+            Assert.That(treecount_removed, Is.LessThan(treecount));
+            Assert.That(treecount_inserted, Is.GreaterThan(treecount_removed));
         }
     }
 }

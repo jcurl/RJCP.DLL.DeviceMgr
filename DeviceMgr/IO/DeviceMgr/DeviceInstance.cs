@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Runtime.Versioning;
     using System.Text;
     using Microsoft.Win32;
@@ -349,6 +350,9 @@
 #endif
 
             // Remove those nodes that were no longer present
+            foreach (DeviceInstance dev in m_Children.Where(dev => dev.m_IsScanned)) {
+                s_CachedInstances.Remove(dev.m_DevInst.DangerousGetHandle());
+            }
             m_Children.RemoveAll(dev => dev.m_IsScanned);
         }
 
@@ -691,6 +695,7 @@
         /// </remarks>
         public void Refresh()
         {
+            Log.CfgMgr.TraceEvent(TraceEventType.Verbose, "Refresh");
             lock (s_CachedLock) {
                 // First we iterate through all the children and reset the properties. Then we'll reenumerate and
                 // replace the children with a Depth First Search, touching all the leaves first. So then if someone is
