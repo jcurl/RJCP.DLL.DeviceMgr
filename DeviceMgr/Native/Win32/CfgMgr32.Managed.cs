@@ -20,7 +20,7 @@
         private static readonly string[] EmptyString = Array.Empty<string>();
 #endif
 
-        public static CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, out int value)
+        public static CONFIGRET CM_Get_DevNode_Registry_Property(IntPtr devInst, CM_DRP property, out int dataType, out int value)
         {
             int length = 4;
             CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, out value, ref length, 0);
@@ -32,7 +32,7 @@
             return ret;
         }
 
-        public static unsafe CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, out string buffer)
+        public static unsafe CONFIGRET CM_Get_DevNode_Registry_Property(IntPtr devInst, CM_DRP property, out int dataType, out string buffer)
         {
             int length = 0;
             CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, IntPtr.Zero, ref length, 0);
@@ -93,7 +93,7 @@
             return ret;
         }
 
-        public static unsafe CONFIGRET CM_Get_DevNode_Registry_Property(SafeDevInst devInst, CM_DRP property, out int dataType, out string[] buffer)
+        public static unsafe CONFIGRET CM_Get_DevNode_Registry_Property(IntPtr devInst, CM_DRP property, out int dataType, out string[] buffer)
         {
             int length = 0;
             CONFIGRET ret = CM_Get_DevNode_Registry_Property(devInst, property, out dataType, IntPtr.Zero, ref length, 0);

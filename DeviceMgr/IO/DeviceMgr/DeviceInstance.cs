@@ -17,7 +17,7 @@
     [SupportedOSPlatform("windows")]
     public sealed class DeviceInstance : IEquatable<DeviceInstance>
     {
-        private readonly SafeDevInst m_DevInst;
+        private readonly IntPtr m_DevInst;
 
         /// <summary>
         /// Gets a tree of all devices, starting from the root, for devices that are available in the system.
@@ -34,7 +34,7 @@
 
             Log.CfgMgr.TraceEvent(TraceEventType.Verbose, "Getting device tree");
 
-            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Locate_DevNode(out IntPtr devInst, null, CfgMgr32.CM_LOCATE_DEVINST.NORMAL);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Couldn't get root node, return {ret}");
                 return null;
@@ -105,7 +105,7 @@
                 // might return a wrong structure.
                 s_CachedInstances.Clear();
                 foreach (string instance in instances) {
-                    ret = CfgMgr32.CM_Locate_DevNode(out SafeDevInst devInst, instance, cmMode);
+                    ret = CfgMgr32.CM_Locate_DevNode(out IntPtr devInst, instance, cmMode);
                     if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                         if (ret != CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVNODE)
                             Log.CfgMgr.TraceEvent(TraceEventType.Error, $"{instance}: Couldn't locate node, return {ret}");
@@ -146,7 +146,7 @@
 
         private static DeviceInstance QueryParent(DeviceInstance device)
         {
-            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Parent(out SafeDevInst parent, device.m_DevInst, 0);
+            CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Parent(out IntPtr parent, device.m_DevInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 return null;
             }
@@ -166,37 +166,28 @@
         private static readonly object s_CachedLock = new();
         private static readonly Dictionary<IntPtr, DeviceInstance> s_CachedInstances = new();
 
-        private static DeviceInstance GetDeviceInstance(SafeDevInst devInst, DeviceInstance parent, string name = null)
+        private static DeviceInstance GetDeviceInstance(IntPtr devInst, DeviceInstance parent, string name = null)
         {
             // Ensure to lock first. We don't do the lock here, as we may want to lock during enumeration, reducing the
             // overhead of locking for the usual case of iterating only once.
-
-            // This isn't actually dangerous, as the handles are global and don't change.
-            IntPtr handle = devInst.DangerousGetHandle();
-
-            if (s_CachedInstances.TryGetValue(handle, out DeviceInstance value)) {
-                if (!value.m_DevInst.IsClosed && !value.m_DevInst.IsInvalid)
-                    return value;
+            if (s_CachedInstances.TryGetValue(devInst, out DeviceInstance value)) {
+                return value;
             }
 
             value = new DeviceInstance(devInst, name) {
                 Parent = parent
             };
-            s_CachedInstances[handle] = value;
+            s_CachedInstances[devInst] = value;
             return value;
         }
         #endregion
 
-        private DeviceInstance(SafeDevInst handle, string name)
+        private DeviceInstance(IntPtr handle, string name)
         {
-            if (handle.IsInvalid || handle.IsClosed)
-                throw new InvalidOperationException();
-
             m_DevInst = handle;
 
             // This API should only be called when we're sure that we have the right name. Often, we need to get the
             // name of the device before instantiating this object, just to see if it's cached. So we can save a call.
-
             m_Name = name ?? GetDeviceId(handle);
             GetStatus();
             SetProperties();
@@ -245,18 +236,18 @@
             m_BaseContainerId.Reset();
         }
 
-        private static string GetDeviceId(SafeDevInst devInst)
+        private static string GetDeviceId(IntPtr devInst)
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_Device_ID_Size(out int length, devInst, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst.DangerousGetHandle():x}: Couldn't get device identifier length, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst:x}: Couldn't get device identifier length, return {ret}");
                 return null;
             }
 
             StringBuilder buffer = new(length + 1);
             ret = CfgMgr32.CM_Get_Device_ID(devInst, buffer, length, 0);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
-                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst.DangerousGetHandle():x}: Couldn't get device identifier for length {length}, return {ret}");
+                Log.CfgMgr.TraceEvent(TraceEventType.Error, $"Handle 0x{devInst:x}: Couldn't get device identifier for length {length}, return {ret}");
                 return null;
             }
 
@@ -283,7 +274,6 @@
 
         private void PopulateChildren(bool overwrite)
         {
-            ThrowHelper.ThrowIfDisposed(m_DevInst.IsInvalid || m_DevInst.IsClosed, this);
             if (!overwrite) {
                 if (m_IsPopulated || m_Children.Count > 0) return;
             }
@@ -307,7 +297,7 @@
             }
 
             CfgMgr32.CONFIGRET ret;
-            ret = CfgMgr32.CM_Get_Child(out SafeDevInst child, m_DevInst, 0);
+            ret = CfgMgr32.CM_Get_Child(out IntPtr child, m_DevInst, 0);
             switch (ret) {
             case CfgMgr32.CONFIGRET.CR_NO_SUCH_DEVINST:
                 break;
@@ -317,7 +307,7 @@
 
                 bool finished = false;
                 while (!finished) {
-                    ret = CfgMgr32.CM_Get_Sibling(out SafeDevInst sibling, node.m_DevInst, 0);
+                    ret = CfgMgr32.CM_Get_Sibling(out IntPtr sibling, node.m_DevInst, 0);
                     switch (ret) {
                     case CfgMgr32.CONFIGRET.CR_SUCCESS:
                         node = GetDeviceInstance(sibling, this);
@@ -351,7 +341,7 @@
 
             // Remove those nodes that were no longer present
             foreach (DeviceInstance dev in m_Children.Where(dev => dev.m_IsScanned)) {
-                s_CachedInstances.Remove(dev.m_DevInst.DangerousGetHandle());
+                s_CachedInstances.Remove(dev.m_DevInst);
             }
             m_Children.RemoveAll(dev => dev.m_IsScanned);
         }
@@ -372,23 +362,7 @@
         /// Gets the underlying handle of the DevInst for the CfgMgr32 API.
         /// </summary>
         /// <value>The underlying configuration manager handle.</value>
-        public SafeDevInst Handle
-        {
-            get
-            {
-                // We make a copy of the handle. The copy is because if the user closes it, it won't affect this
-                // implementation. Also, closing the handle has no effect.
-                return new SafeDevInst(m_DevInst.DangerousGetHandle());
-            }
-        }
-
-        internal SafeDevInst InternalHandle
-        {
-            get
-            {
-                return m_DevInst;
-            }
-        }
+        public IntPtr Handle { get { return m_DevInst; } }
 
         /// <summary>
         /// Gets the parent device instance.
@@ -737,7 +711,7 @@
         /// </returns>
         public bool Equals(DeviceInstance other)
         {
-            return (other is not null && other.m_DevInst.DangerousGetHandle() == m_DevInst.DangerousGetHandle());
+            return (other is not null && other.m_DevInst == m_DevInst);
         }
 
         /// <summary>
@@ -762,7 +736,7 @@
         public override int GetHashCode()
         {
             unchecked {
-                ulong handle = (ulong)m_DevInst.DangerousGetHandle().ToInt64();
+                ulong handle = (ulong)m_DevInst.ToInt64();
                 handle ^= (handle >> 32);
                 return (int)((11400714819323198485 * handle) >> 32);
             }
@@ -783,7 +757,7 @@
         {
             get
             {
-                return m_Name ?? $"Handle {m_DevInst.DangerousGetHandle():x}";
+                return m_Name ?? $"Handle 0x{m_DevInst:x}";
             }
         }
 

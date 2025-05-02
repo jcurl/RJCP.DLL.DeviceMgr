@@ -45,7 +45,7 @@
         private string GetPropertyString()
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                m_DevInst.InternalHandle, m_DeviceProperty, out int _, out string buffer);
+                m_DevInst.Handle, m_DeviceProperty, out int _, out string buffer);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
@@ -58,7 +58,7 @@
         private string[] GetPropertyStringArray()
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                 m_DevInst.InternalHandle, m_DeviceProperty, out int _, out string[] buffer);
+                 m_DevInst.Handle, m_DeviceProperty, out int _, out string[] buffer);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,
@@ -71,7 +71,7 @@
         private int GetPropertyInt()
         {
             CfgMgr32.CONFIGRET ret = CfgMgr32.CM_Get_DevNode_Registry_Property(
-                m_DevInst.InternalHandle, m_DeviceProperty, out int _, out int value);
+                m_DevInst.Handle, m_DeviceProperty, out int _, out int value);
             if (ret != CfgMgr32.CONFIGRET.CR_SUCCESS) {
                 if (ShouldWarnProperty(ret))
                     Log.CfgMgr.TraceEvent(TraceEventType.Warning,

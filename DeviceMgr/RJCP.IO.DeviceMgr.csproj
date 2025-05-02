@@ -92,7 +92,6 @@
     <Compile Include="Native\Win32\Kernel32+WinPlatformId.cs" />
     <Compile Include="Native\Win32\Kernel32.cs" />
     <Compile Include="Native\Win32\NtDll.cs" />
-    <Compile Include="Native\Win32\SafeDevInst.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
 
