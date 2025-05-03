@@ -15,6 +15,8 @@ individual devices.
 - [1. Testing](#1-testing)
 - [2. Using in Your Own Software](#2-using-in-your-own-software)
 - [3. Release History](#3-release-history)
+  - [Version 0.8.3](#version-083)
+  - [Version 0.8.2](#version-082)
   - [Version 0.8.1](#version-081)
   - [Version 0.8.0](#version-080)
 
@@ -33,6 +35,28 @@ To set up logging, to see any errors or warnings, see
 a minimal program for dumping information.
 
 ## 3. Release History
+
+### Version 0.8.3
+
+Bug Fix:
+
+- Don't refresh multiple times (DOTNET-1031)
+- Fix refresh on device insertion (DOTNET-1033)
+
+Quality:
+
+- Clear cache on getting the list (DOTNET-1032)
+- Don't use `SafeDevInst` and use `IntPtr` as there's nothing to free
+  (DOTNET-1036)
+
+### Version 0.8.2
+
+Do not use. Refresh doesn't work properly.
+
+Quality:
+
+- Reduce the amount of allocations on the heap (DOTNET-1021,
+  [#1](https://github.com/jcurl/RJCP.DLL.DeviceMgr/issues/1))
 
 ### Version 0.8.1
 
