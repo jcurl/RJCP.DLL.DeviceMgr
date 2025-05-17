@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Runtime.Versioning;
     using System.Text;
     using System.Windows.Forms;
@@ -82,6 +83,7 @@
         {
             DeviceInstance devices = root ?? DeviceInstance.GetRoot();
             devices.Refresh();
+            DumpDeviceTree(devices, true);
             Assert.That(devices, Is.Not.Null);
             Assert.That(devices.Children, Is.Not.Empty);
 
@@ -287,8 +289,19 @@
 
         [TestCase(LocateMode.Phantom)]
         [TestCase(LocateMode.Normal)]
+#if !DEBUG
+        [Explicit("Interactive Manual Test")]
+        [Category("ManualTest")]
+#endif
         public void RefreshCount(LocateMode mode)
         {
+            // This test case is set for DEBUG only. On some systems it's seen that the call to CM_Get_Device_ID_List()
+            // called from GetList() returns only a partial list, and then refreshing that with GetRoot().Refresh() will
+            // return additional devices (which uses CM_Get_Child() and CM_Get_Sibling()). However, the Refresh()
+            // doesn't have a mechanism to return the phantom elements. Running as Administrator doesn't help.
+            //
+            // Tested on Windows 11 (after migrating from Windows 10). Assuming a bug in Windows 11.
+
             int list = DeviceInstance.GetList(mode).Count;
             int treecount = CheckDeviceTree(DeviceInstance.GetRoot());
             DeviceInstance.GetRoot().Refresh();
