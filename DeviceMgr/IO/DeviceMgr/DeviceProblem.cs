@@ -8,7 +8,6 @@
     /// </remarks>
     public enum DeviceProblem
     {
-
         /// <summary>
         /// No problem identified.
         /// </summary>
@@ -30,12 +29,12 @@
         OutOfMemory = 0x00000003,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         EntryIsWrongType = 0x00000004,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         LackedArbitrator = 0x00000005,
 
@@ -45,7 +44,7 @@
         BootConfigConflict = 0x00000006,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         FailedFilter = 0x00000007,
 
@@ -60,12 +59,12 @@
         InvalidData = 0x00000009,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         FailedStart = 0x0000000A,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         Liar = 0x0000000B,
 
@@ -75,7 +74,7 @@
         NormalConflict = 0x0000000C,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         NotVerified = 0x0000000D,
 
@@ -85,12 +84,12 @@
         NeedRestart = 0x0000000E,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         Reenumeration = 0x0000000F,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         PartialLogConf = 0x00000010,
 
@@ -100,12 +99,12 @@
         UnknownResource = 0x00000011,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         Reinstall = 0x00000012,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         Registry = 0x00000013,
 
@@ -135,12 +134,12 @@
         DeviceNotThere = 0x00000018,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         Moved = 0x00000019,
 
         /// <summary>
-        /// 
+        /// -
         /// </summary>
         TooEarly = 0x0000001A,
 
