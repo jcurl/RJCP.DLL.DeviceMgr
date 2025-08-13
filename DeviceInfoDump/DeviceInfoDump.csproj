@@ -63,7 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RJCP.MSBuildTasks" Version="0.2.5" PrivateAssets="all" />
+    <PackageReference Include="RJCP.MSBuildTasks" Version="0.2.6" PrivateAssets="all" />
     <PackageReference Include="CSharpIsNullAnalyzer" Version="0.1.593" PrivateAssets="all" />
     <ProjectReference Include="..\DeviceMgr\RJCP.IO.DeviceMgr.csproj" />
     <ProjectReference Include="..\..\trace\Trace\RJCP.Diagnostics.Trace.csproj" />
