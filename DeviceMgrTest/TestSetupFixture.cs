@@ -1,4 +1,4 @@
-﻿namespace RJCP.IO.DeviceMgr
+﻿namespace RJCP
 {
     // This file is only for .NET Core
 

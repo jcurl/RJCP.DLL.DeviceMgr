@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Runtime.Versioning;
     using System.Text;
     using System.Windows.Forms;
@@ -129,10 +128,10 @@
             Compare(foundBefore, foundAfter, out int removals, out int additions);
 
             // Compare before and after. There should only be a difference if a device was added or removed.
-            Assert.Multiple(() => {
-                Assert.That(removals, Is.EqualTo(0));
-                Assert.That(additions, Is.EqualTo(0));
-            });
+            using (Assert.EnterMultipleScope()) {
+                Assert.That(removals, Is.Zero);
+                Assert.That(additions, Is.Zero);
+            }
         }
 
         [Test]

@@ -11,6 +11,12 @@
     using Native.Win32;
     using RJCP.Core.Environment;
 
+#if NET10_0_OR_GREATER
+    using Lock = System.Threading.Lock;
+#else
+    using Lock = System.Object;
+#endif
+
     /// <summary>
     /// A Device Instance representing a device in the system.
     /// </summary>
@@ -163,7 +169,7 @@
         }
 
         #region Cached Device Instances
-        private static readonly object s_CachedLock = new();
+        private static readonly Lock s_CachedLock = new();
         private static readonly Dictionary<IntPtr, DeviceInstance> s_CachedInstances = new();
 
         private static DeviceInstance GetDeviceInstance(IntPtr devInst, DeviceInstance parent, string name = null)
